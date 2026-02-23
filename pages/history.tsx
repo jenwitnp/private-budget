@@ -119,18 +119,6 @@ export default function HistoryPage() {
     console.log("💚 Opening payment modal for:", transactionId);
   };
 
-  // Filter transactions
-  const filteredTransactions = transactions.filter((tx) => {
-    const matchesSearch =
-      tx.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tx.account.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tx.amount.toString().includes(searchTerm);
-
-    const matchesStatus = statusFilter === "all" || tx.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  });
-
   return (
     <DashboardLayout>
       {/* Header with Action Button */}
@@ -227,8 +215,8 @@ export default function HistoryPage() {
       {/* Transaction Cards - Mobile First */}
       {!isLoading && !fetchError && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6">
-          {filteredTransactions.length > 0 ? (
-            filteredTransactions.map((tx) => (
+          {transactions.length > 0 ? (
+            transactions.map((tx) => (
               <TransactionCard
                 key={tx.id}
                 transaction={tx}
