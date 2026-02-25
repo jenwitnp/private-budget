@@ -10,10 +10,12 @@ export interface Transaction {
   user_id: string;
   bank_account_id: string | null;
   amount: number;
+  net_amount?: number | null;
+  displayAmount?: number;
   currency: string;
   description: string | null;
   notes: string | null;
-  status: "success" | "pending" | "cancelled" | "processing";
+  status: "pending" | "approved" | "rejected" | "paid";
   transaction_date: string;
   created_at: string;
   updated_at: string;
@@ -36,6 +38,8 @@ export interface GetTransactionsRequest {
   search?: string;
   filters?: Record<string, any>;
   sortBy?: "newest" | "oldest" | "amount_asc" | "amount_desc";
+  lte?: Record<string, any>;
+  gte?: Record<string, any>;
 }
 
 /**
@@ -60,8 +64,6 @@ export async function getTransactionsByUser(userId: string): Promise<{
   error?: string;
 }> {
   try {
-    console.log("📋 [TRANSACTIONS] Fetching transactions for user:", userId);
-
     // First, fetch transactions
     const { data, error } = await (supabase as any)
       .from("transactions")
@@ -70,13 +72,8 @@ export async function getTransactionsByUser(userId: string): Promise<{
       .order("transaction_date", { ascending: false });
 
     if (error) {
-      console.error("❌ [TRANSACTIONS] Fetch error:", error.message);
       throw new Error(error.message);
     }
-
-    console.log(
-      `✅ [TRANSACTIONS] Fetched ${data?.length || 0} transactions for user`,
-    );
 
     return {
       success: true,
@@ -84,7 +81,6 @@ export async function getTransactionsByUser(userId: string): Promise<{
     };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
-    console.error("❌ [TRANSACTIONS] Error:", errorMessage);
     return {
       success: false,
       error: errorMessage,
@@ -101,8 +97,6 @@ export async function getTransactionById(id: string): Promise<{
   error?: string;
 }> {
   try {
-    console.log("📋 [TRANSACTIONS] Fetching transaction:", id);
-
     const { data, error } = await (supabase as any)
       .from("transactions")
       .select("*")
@@ -110,11 +104,8 @@ export async function getTransactionById(id: string): Promise<{
       .single();
 
     if (error) {
-      console.error("❌ [TRANSACTIONS] Fetch error:", error.message);
       throw new Error(error.message);
     }
-
-    console.log("✅ [TRANSACTIONS] Fetched transaction:", id);
 
     return {
       success: true,
@@ -122,7 +113,6 @@ export async function getTransactionById(id: string): Promise<{
     };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
-    console.error("❌ [TRANSACTIONS] Error:", errorMessage);
     return {
       success: false,
       error: errorMessage,
@@ -143,6 +133,8 @@ export async function getTransactions(
       search = "",
       filters = {},
       sortBy = "newest",
+      lte = {},
+      gte = {},
     } = request;
 
     // Determine sort column and direction
@@ -150,7 +142,7 @@ export async function getTransactions(
     let sortOrder: "asc" | "desc" = "desc";
 
     if (sortBy === "oldest") {
-      sortColumn = "transaction_date";
+      sortColumn = "created_at";
       sortOrder = "asc";
     } else if (sortBy === "amount_asc") {
       sortColumn = "amount";
@@ -176,23 +168,31 @@ export async function getTransactions(
       page: pageParam,
       pageSize,
       total: { count: "exact" },
+      lte,
+      gte,
     });
 
     if (!result.success) {
-      console.error("❌ [TRANSACTIONS] Fetch error:", result.error);
       throw new Error(result.error || "Failed to fetch transactions");
     }
 
     const data = result.data as Transaction[];
     const count = result.count || 0;
 
-    console.log(
-      `✅ [TRANSACTIONS] Fetched page ${pageParam} with ${data?.length || 0} transactions`,
-    );
+    // Compute displayAmount: show net_amount if status is 'paid' and net_amount differs from amount
+    const dataWithDisplayAmount = data.map((tx) => ({
+      ...tx,
+      displayAmount:
+        tx.status === "paid" &&
+        tx.net_amount != null &&
+        tx.net_amount !== tx.amount
+          ? tx.net_amount
+          : tx.amount,
+    }));
 
     return {
       success: true,
-      data: data as Transaction[],
+      data: dataWithDisplayAmount as Transaction[],
       total: count,
       currentPage: pageParam,
       pageSize,
@@ -200,7 +200,6 @@ export async function getTransactions(
     };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
-    console.error("❌ [TRANSACTIONS] Error:", errorMessage);
     return {
       success: false,
       error: errorMessage,
@@ -236,7 +235,6 @@ async function getUserRole(userId: string): Promise<string> {
 
     return user.role;
   } catch (error) {
-    console.error("❌ [TRANSACTIONS] Error fetching user role:", error);
     throw new Error("Failed to verify user permissions");
   }
 }
@@ -255,20 +253,8 @@ export async function approveTransaction(
   error?: string;
 }> {
   try {
-    console.log(
-      "\n🔄 [WORKFLOW APPROVE] Started",
-      "\n├─ transactionId:",
-      transactionId,
-      "\n├─ userId:",
-      userId,
-      "\n└─ notes:",
-      notes,
-    );
-
     // ✅ Server-side role verification
-    console.log("👤 [WORKFLOW APPROVE] Verifying user role...");
     const userRole = await getUserRole(userId);
-    console.log("✅ [WORKFLOW APPROVE] User role verified:", userRole);
     if (userRole !== "owner") {
       throw new Error(
         `Permission denied: Only owner can approve. Your role: ${userRole}`,
@@ -276,39 +262,17 @@ export async function approveTransaction(
     }
 
     // Fetch transaction to verify status
-    console.log("📋 [WORKFLOW APPROVE] Fetching transaction from database...");
     const { data: transaction, error: fetchError } = await (supabase as any)
       .from("transactions")
       .select("*")
       .eq("id", transactionId)
       .single();
 
-    console.log(
-      "📊 [WORKFLOW APPROVE] Database query result:",
-      "\n├─ fetchError:",
-      fetchError,
-      "\n└─ transaction:",
-      transaction,
-    );
-
     if (fetchError || !transaction) {
-      console.error(
-        "❌ [WORKFLOW APPROVE] Transaction lookup failed:",
-        "\n├─ Error:",
-        fetchError,
-        "\n├─ TransactionId searched:",
-        transactionId,
-        "\n└─ Transaction found:",
-        !!transaction,
-      );
       throw new Error(
         `Transaction not found (ID: ${transactionId}, Error: ${fetchError?.message || "No transaction returned"})`,
       );
     }
-    console.log(
-      "✅ [WORKFLOW APPROVE] Transaction found, status:",
-      transaction.status,
-    );
 
     if (transaction.status !== "pending") {
       throw new Error(
@@ -317,7 +281,6 @@ export async function approveTransaction(
     }
 
     // Update transaction
-    console.log("💾 [WORKFLOW APPROVE] Updating transaction in database...");
     const { error: updateError } = await (supabase as any)
       .from("transactions")
       .update({
@@ -332,29 +295,12 @@ export async function approveTransaction(
       .eq("id", transactionId);
 
     if (updateError) {
-      console.error(
-        "❌ [WORKFLOW APPROVE] Update failed:",
-        updateError.message,
-      );
       throw updateError;
     }
-
-    console.log(
-      "✅ [WORKFLOW APPROVE] Successfully approved transaction",
-      transactionId,
-      "by user:",
-      userId,
-    );
     return { success: true, message: "Transaction approved successfully" };
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
-    console.error(
-      "❌ [WORKFLOW APPROVE] Error:",
-      errorMessage,
-      "\n─ Full error:",
-      error,
-    );
     return { success: false, error: errorMessage };
   }
 }
@@ -373,20 +319,8 @@ export async function rejectTransaction(
   error?: string;
 }> {
   try {
-    console.log(
-      "\n🔄 [WORKFLOW REJECT] Started",
-      "\n├─ transactionId:",
-      transactionId,
-      "\n├─ userId:",
-      userId,
-      "\n└─ reason:",
-      reason,
-    );
-
     // ✅ Server-side role verification
-    console.log("👤 [WORKFLOW REJECT] Verifying user role...");
     const userRole = await getUserRole(userId);
-    console.log("✅ [WORKFLOW REJECT] User role verified:", userRole);
     if (userRole !== "owner") {
       throw new Error(
         `Permission denied: Only owner can reject. Your role: ${userRole}`,
@@ -394,48 +328,25 @@ export async function rejectTransaction(
     }
 
     // Fetch transaction to verify status
-    console.log("📋 [WORKFLOW REJECT] Fetching transaction from database...");
     const { data: transaction, error: fetchError } = await (supabase as any)
       .from("transactions")
       .select("*")
       .eq("id", transactionId)
       .single();
 
-    console.log(
-      "📊 [WORKFLOW REJECT] Database query result:",
-      "\n├─ fetchError:",
-      fetchError,
-      "\n└─ transaction:",
-      transaction,
-    );
-
     if (fetchError || !transaction) {
-      console.error(
-        "❌ [WORKFLOW REJECT] Transaction lookup failed:",
-        "\n├─ Error:",
-        fetchError,
-        "\n├─ TransactionId searched:",
-        transactionId,
-        "\n└─ Transaction found:",
-        !!transaction,
-      );
       throw new Error(
         `Transaction not found (ID: ${transactionId}, Error: ${fetchError?.message || "No transaction returned"})`,
       );
     }
-    console.log(
-      "✅ [WORKFLOW REJECT] Transaction found, status:",
-      transaction.status,
-    );
 
     if (transaction.status !== "pending") {
       throw new Error(
-        `Transaction cannot be rejected from ${transaction.status} status`,
+        `Transaction cannot be rejected from ${transaction.status} status. Only 'pending' transactions can be rejected.`,
       );
     }
 
     // Update transaction
-    console.log("💾 [WORKFLOW REJECT] Updating transaction in database...");
     const { error: updateError } = await (supabase as any)
       .from("transactions")
       .update({
@@ -451,26 +362,12 @@ export async function rejectTransaction(
       .eq("id", transactionId);
 
     if (updateError) {
-      console.error("❌ [WORKFLOW REJECT] Update failed:", updateError.message);
       throw updateError;
     }
-
-    console.log(
-      "✅ [WORKFLOW REJECT] Successfully rejected transaction",
-      transactionId,
-      "by user:",
-      userId,
-    );
     return { success: true, message: "Transaction rejected successfully" };
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
-    console.error(
-      "❌ [WORKFLOW REJECT] Error:",
-      errorMessage,
-      "\n─ Full error:",
-      error,
-    );
     return { success: false, error: errorMessage };
   }
 }
@@ -483,66 +380,33 @@ export async function payTransaction(
   transactionId: string,
   userId: string,
   bankReference?: string,
+  netAmount?: string,
 ): Promise<{
   success: boolean;
   message?: string;
   error?: string;
 }> {
   try {
-    console.log(
-      "\n🔄 [WORKFLOW PAY] Started",
-      "\n├─ transactionId:",
-      transactionId,
-      "\n├─ userId:",
-      userId,
-      "\n└─ bankReference:",
-      bankReference,
-    );
-
     // ✅ Server-side role verification
-    console.log("👤 [WORKFLOW PAY] Verifying user role...");
     const userRole = await getUserRole(userId);
-    console.log("✅ [WORKFLOW PAY] User role verified:", userRole);
-    if (userRole !== "admin") {
+    if (userRole == "user") {
       throw new Error(
         `Permission denied: Only admin can pay. Your role: ${userRole}`,
       );
     }
 
     // Fetch transaction to verify status
-    console.log("📋 [WORKFLOW PAY] Fetching transaction from database...");
     const { data: transaction, error: fetchError } = await (supabase as any)
       .from("transactions")
       .select("*")
       .eq("id", transactionId)
       .single();
 
-    console.log(
-      "📊 [WORKFLOW PAY] Database query result:",
-      "\n├─ fetchError:",
-      fetchError,
-      "\n└─ transaction:",
-      transaction,
-    );
-
     if (fetchError || !transaction) {
-      console.error(
-        "❌ [WORKFLOW PAY] Transaction lookup failed:",
-        "\n├─ Error:",
-        fetchError,
-        "\n├─ TransactionId searched:",
-        transactionId,
-        "\n└─ Transaction found:",
-        !!transaction,
-      );
       throw new Error(
         `Transaction not found (ID: ${transactionId}, Error: ${fetchError?.message || "No transaction returned"})`,
       );
     }
-    console.log(
-      "✅ [WORKFLOW PAY] Transaction found, status:",
-      transaction.status,
-    );
 
     if (transaction.status !== "approved") {
       throw new Error(
@@ -551,7 +415,6 @@ export async function payTransaction(
     }
 
     // Update transaction
-    console.log("💾 [WORKFLOW PAY] Updating transaction in database...");
     const { error: updateError } = await (supabase as any)
       .from("transactions")
       .update({
@@ -560,6 +423,7 @@ export async function payTransaction(
         status_changed_by: userId,
         processed_at: new Date().toISOString(),
         completed_at: new Date().toISOString(),
+        net_amount: netAmount ? parseFloat(netAmount) : null,
         description: bankReference
           ? `Paid with reference: ${bankReference}`
           : "Payment processed",
@@ -568,26 +432,12 @@ export async function payTransaction(
       .eq("id", transactionId);
 
     if (updateError) {
-      console.error("❌ [WORKFLOW PAY] Update failed:", updateError.message);
       throw updateError;
     }
-
-    console.log(
-      "✅ [WORKFLOW PAY] Successfully paid transaction",
-      transactionId,
-      "by user:",
-      userId,
-    );
     return { success: true, message: "Transaction paid successfully" };
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
-    console.error(
-      "❌ [WORKFLOW PAY] Error:",
-      errorMessage,
-      "\n─ Full error:",
-      error,
-    );
     return { success: false, error: errorMessage };
   }
 }

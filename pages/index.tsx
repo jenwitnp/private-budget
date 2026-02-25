@@ -83,13 +83,13 @@ export default function Dashboard() {
                 name: "บัญชีกสิกรไทย",
                 amount: "฿2,500.00",
                 date: "2 ชั่วโมงที่แล้ว",
-                status: "success",
+                status: "paid",
               },
               {
                 name: "บัญชีไทยพาณิชย์",
                 amount: "฿5,000.00",
                 date: "เมื่อวานนี้",
-                status: "success",
+                status: "paid",
               },
               {
                 name: "บัญชีธนาชาติ",
@@ -114,12 +114,12 @@ export default function Dashboard() {
                   </p>
                   <span
                     className={`text-xs px-2 py-0.5 rounded-full ${
-                      tx.status === "success"
+                      tx.status === "paid"
                         ? "bg-emerald-50 text-emerald-700"
                         : "bg-yellow-50 text-yellow-700"
                     }`}
                   >
-                    {tx.status === "success" ? "สำเร็จ" : "รอดำเนินการ"}
+                    {tx.status === "paid" ? "สำเร็จ" : "รอดำเนินการ"}
                   </span>
                 </div>
               </div>

@@ -1,4 +1,4 @@
-"use client";
+"use server";
 
 /**
  * Client-side actions for withdrawal form

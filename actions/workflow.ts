@@ -160,12 +160,14 @@ export async function rejectTransactionAction(
  * @param userId - User ID of the admin paying
  * @param userRole - User role (from client session)
  * @param bankReference - Optional bank reference for payment
+ * @param netAmount - Confirmed amount to pay
  */
 export async function payTransactionAction(
   transactionId: string,
   userId: string,
   userRole: string,
   bankReference?: string,
+  netAmount?: string,
 ) {
   try {
     if (!userId) {
@@ -177,7 +179,7 @@ export async function payTransactionAction(
     }
 
     // Verify role on client side first
-    if (userRole !== "admin") {
+    if (userRole == "user") {
       throw new Error(
         `Permission denied: Only admin can pay. Your role: ${userRole}`,
       );
@@ -198,7 +200,12 @@ export async function payTransactionAction(
     );
 
     // Call server function that handles role verification + database update
-    const result = await payTransaction(transactionId, userId, bankReference);
+    const result = await payTransaction(
+      transactionId,
+      userId,
+      bankReference,
+      netAmount,
+    );
 
     console.log(
       "✅ [WORKFLOW.CLIENT PAY] Server response:",

@@ -15,25 +15,7 @@ export async function getTransactionsAction(
   GetTransactionsResponse & { currentPage?: number; totalPages?: number }
 > {
   try {
-    // Get user data from request parameter
-    console.log("📋 [getTransactionsAction] User Data:", {
-      userId: request.user?.id,
-      userEmail: request.user?.email,
-      userName: request.user?.name,
-      userRole: request.user?.role,
-      isAuthenticated: !!request.user?.id,
-    });
-
-    const query: GetTransactionsRequest = {
-      user: request.user,
-      pageParam: 1,
-      search: "",
-      filters: {},
-      sortBy: "newest",
-      pageSize: 12,
-    };
-
-    const result = await getTransactions(query);
+    const result = await getTransactions(request);
 
     if (!result.success) {
       throw new Error(result.error || "Failed to fetch transactions");
@@ -50,7 +32,6 @@ export async function getTransactionsAction(
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Failed to fetch transactions";
-    console.error("❌ [getTransactionsAction] Error:", errorMessage);
     return {
       success: false,
       error: errorMessage,

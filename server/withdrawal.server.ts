@@ -30,8 +30,8 @@ export async function processWithdrawalOnServer(
     // Validation
     const errors: Record<string, string> = {};
 
-    // Validate bank account ID - Required only for transfer type
-    if (formData.type === "transfer") {
+    // Validate bank account ID - Required only for transfer payment method
+    if (formData.payment_method === "transfer") {
       if (!formData.bankAccountId || formData.bankAccountId.trim() === "") {
         errors.bankAccountId = "กรุณาเลือกบัญชีธนาคาร";
       }
@@ -88,7 +88,7 @@ export async function processWithdrawalOnServer(
       bankAccount: formData.bankAccountId || "N/A",
       itemName: formData.itemName,
       category: formData.category,
-      type: formData.type,
+      payment_method: formData.payment_method,
       amount: `฿${finalNumAmount.toLocaleString("th-TH")}`,
       images: formData.images?.length || 0,
     });
@@ -192,6 +192,7 @@ export function prepareTransactionDataForSupabase(
   }
 
   return {
+    item_name: formData.itemName || null,
     transaction_number: transactionNumber,
     user_id: userId,
     bank_account_id:
@@ -201,7 +202,9 @@ export function prepareTransactionDataForSupabase(
     amount: finalAmount,
     currency: "THB",
     description: formData.description || null,
-    notes: `Category: ${formData.category}, Type: ${formData.type}, Item: ${formData.itemName}`,
+    category_id: formData.category || null,
+    payment_method: formData.payment_method,
+    notes: `Item: ${formData.itemName}`,
     status: "pending",
     transaction_date: new Date().toISOString(),
     created_at: new Date().toISOString(),

@@ -43,7 +43,7 @@ export function useFilteredTransactions(
   user: { id?: string; role?: string } | null,
   page: number = 1,
   pageSize: number = 10,
-  statusFilter?: "all" | "success" | "pending" | "cancelled",
+  statusFilter?: "all" | "pending" | "approved" | "rejected" | "paid",
   daysFilter?: number,
   options?: UseQueryOptions<{ data: Transaction[]; total: number }, Error>,
 ) {

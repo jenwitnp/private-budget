@@ -1,6 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { Card } from "@/components/ui/Card";
+import { StatusBadge } from "@/components/StatusBadge";
+import { ActionButton } from "@/components/ActionButton";
+import { TransactionDetailModal } from "@/components/modals/TransactionDetailModal";
 import { useWorkflowVisibility, useUserRole } from "@/lib/permissions/hooks";
 import { ActionGuard } from "@/lib/permissions/guards";
 
@@ -9,17 +13,12 @@ export interface Transaction {
   transactionNumber: string; // Display value (TRX format)
   account: string;
   amount: number;
-  status:
-    | "pending"
-    | "approved"
-    | "rejected"
-    | "paid"
-    | "success"
-    | "failed"
-    | "cancelled";
+  displayAmount?: number; // Computed amount (net_amount when paid and different)
+  status: "pending" | "approved" | "rejected" | "paid";
   date: string;
   bankAccount: string;
   userId?: string;
+  itemName: string;
 }
 
 interface TransactionCardProps {
@@ -37,6 +36,17 @@ export function TransactionCard({
 }: TransactionCardProps) {
   const workflow = useWorkflowVisibility();
   const userRole = useUserRole();
+  const [showDetailModal, setShowDetailModal] = useState(false);
+
+  // Optimistic update state
+  const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null);
+  const [loadingAction, setLoadingAction] = useState<
+    "approve" | "reject" | "pay" | null
+  >(null);
+
+  // Display status - use optimistic if available, otherwise use actual
+  const displayStatus = (optimisticStatus ||
+    tx.status) as Transaction["status"];
 
   // Logging handler for workflow actions
   const logAction = (action: "approve" | "reject" | "pay") => {
@@ -46,28 +56,97 @@ export function TransactionCard({
       userRole,
       transactionId: tx.id,
       transactionStatus: tx.status,
+      optimisticStatus,
       transactionAmount: tx.amount,
     };
-
-    console.group(`🔐 Workflow Action: ${action.toUpperCase()}`);
-    console.log("%cUser Role:", "color: #3b82f6; font-weight: bold;", userRole);
-    console.log(
-      "%cTransaction ID:",
-      "color: #8b5cf6; font-weight: bold;",
-      tx.id,
-    );
-    console.log(
-      "%cTransaction Status:",
-      "color: #f59e0b; font-weight: bold;",
-      tx.status,
-    );
-    console.log(
-      "%cAction Details:",
-      "color: #10b981; font-weight: bold;",
-      logData,
-    );
-    console.groupEnd();
   };
+
+  // Handle approve with optimistic update
+  const handleApproveClick = () => {
+    logAction("approve");
+    setOptimisticStatus("approved");
+    setLoadingAction("approve");
+    onApprove?.(tx.id);
+  };
+
+  // Handle reject with optimistic update
+  const handleRejectClick = () => {
+    logAction("reject");
+    setOptimisticStatus("rejected");
+    setLoadingAction("reject");
+    onReject?.(tx.id);
+  };
+
+  // Handle pay with optimistic update
+  const handlePayClick = () => {
+    logAction("pay");
+    setOptimisticStatus("paid");
+    setLoadingAction("pay");
+    onPay?.(tx.id);
+  };
+
+  // Callback to revert optimistic update on error
+  const revertOptimisticUpdate = () => {
+    setOptimisticStatus(null);
+    setLoadingAction(null);
+  };
+
+  // Callback when modal closes (success or cancel)
+  const handleModalClose = () => {
+    setLoadingAction(null);
+  };
+
+  // Status to badge color mapping
+  const statusColorMap: Record<string, { bg: string; text: string }> = {
+    disabled: { bg: "bg-state-50", text: "text-state-400" },
+    pending: { bg: "bg-amber-100", text: "text-amber-400" },
+    approved: { bg: "bg-purple-100", text: "text-purple-400" },
+    rejected: { bg: "bg-red-100", text: "text-red-400" },
+    paid: { bg: "bg-emerald-100", text: "text-emerald-400" },
+  };
+
+  const statusColor = statusColorMap[tx.status] || {
+    bg: "bg-slate-100",
+    text: "text-slate-400",
+  };
+
+  // Determine which workflow buttons to show based on status
+  const isApprove = tx.status === "approved";
+  const isReject = tx.status === "rejected";
+  const isPay = tx.status === "paid";
+
+  // Reject button can be performed on "pending" and "approved" statuses
+
+  let rejectColor = {
+    bg: "bg-slate-100",
+    text: "text-slate-400",
+  };
+  let approvedColor = {
+    bg: "bg-slate-100",
+    text: "text-slate-400",
+  };
+  let paidColor = {
+    bg: "bg-slate-100",
+    text: "text-slate-400",
+  };
+
+  if (isApprove) {
+    rejectColor = statusColorMap["disabled"];
+    approvedColor = statusColorMap["approved"];
+    paidColor = statusColorMap["disabled"];
+  } else if (isReject) {
+    rejectColor = statusColorMap["rejected"];
+    approvedColor = statusColorMap["disabled"];
+    paidColor = statusColorMap["disabled"];
+  } else if (isPay) {
+    rejectColor = statusColorMap["disabled"];
+    approvedColor = statusColorMap["approved"];
+    paidColor = statusColorMap["paid"];
+  } else {
+    rejectColor = statusColorMap["disabled"];
+    approvedColor = statusColorMap["disabled"];
+    paidColor = statusColorMap["disabled"];
+  }
 
   return (
     <Card className="hover:shadow-md transition-shadow duration-200">
@@ -83,65 +162,25 @@ export function TransactionCard({
               {tx.transactionNumber}
             </p>
           </div>
-          <span
-            className={`shrink-0 text-xs md:text-sm px-3 md:px-3.5 py-1.5 rounded-full font-semibold whitespace-nowrap flex items-center gap-1.5 ${
-              tx.status === "paid"
-                ? "bg-emerald-50 text-emerald-700"
-                : tx.status === "success"
-                  ? "bg-blue-50 text-blue-700"
-                  : tx.status === "pending"
-                    ? "bg-amber-50 text-amber-700"
-                    : tx.status === "approved"
-                      ? "bg-purple-50 text-purple-700"
-                      : tx.status === "rejected" ||
-                          tx.status === "failed" ||
-                          tx.status === "cancelled"
-                        ? "bg-red-50 text-red-700"
-                        : "bg-slate-50 text-slate-700"
-            }`}
-          >
-            <i
-              className={`fas text-xs ${
-                tx.status === "paid"
-                  ? "fa-check-double"
-                  : tx.status === "success"
-                    ? "fa-check-circle"
-                    : tx.status === "pending"
-                      ? "fa-clock"
-                      : tx.status === "approved"
-                        ? "fa-thumbs-up"
-                        : tx.status === "rejected" || tx.status === "failed"
-                          ? "fa-times-circle"
-                          : tx.status === "cancelled"
-                            ? "fa-ban"
-                            : "fa-info-circle"
-              }`}
-            ></i>
-            {tx.status === "paid"
-              ? "ชำระแล้ว"
-              : tx.status === "success"
-                ? "สำเร็จ"
-                : tx.status === "pending"
-                  ? "รอดำเนินการ"
-                  : tx.status === "approved"
-                    ? "อนุมัติแล้ว"
-                    : tx.status === "rejected"
-                      ? "ปฏิเสธ"
-                      : tx.status === "failed"
-                        ? "ล้มเหลว"
-                        : tx.status === "cancelled"
-                          ? "ยกเลิก"
-                          : "ไม่ทราบ"}
-          </span>
+          <div className="relative">
+            <StatusBadge status={displayStatus} />
+            {optimisticStatus && (
+              <div className="absolute inset-0 animate-pulse opacity-50">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold text-white blur-sm">
+                  ⏳
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Bank Account */}
         <div className="mb-4 pb-4 border-b border-slate-100">
           <p className="text-xs text-slate-500 font-medium mb-1.5">
-            บัญชีธนาคาร
+            ชื่อรายการ
           </p>
           <p className="text-sm md:text-base font-semibold text-slate-800 mb-1">
-            {tx.account}
+            {tx.itemName}
           </p>
           <p className="text-xs text-slate-500 font-num font-medium">
             {tx.bankAccount}
@@ -155,7 +194,7 @@ export function TransactionCard({
               จำนวนเงิน
             </p>
             <p className="text-lg md:text-xl font-bold text-emerald-600 font-num">
-              ฿{tx.amount.toLocaleString("th-TH")}
+              ฿{(tx.displayAmount || tx.amount).toLocaleString("th-TH")}
             </p>
           </div>
           <div className="text-right">
@@ -170,7 +209,10 @@ export function TransactionCard({
         <div className="flex flex-col gap-2">
           {/* View and Download - Always Available */}
           <div className="flex gap-2">
-            <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium rounded-lg transition-colors text-sm md:text-base">
+            <button
+              onClick={() => setShowDetailModal(true)}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium rounded-lg transition-colors text-sm md:text-base"
+            >
               <i className="fas fa-eye"></i>
               ดูรายละเอียด
             </button>
@@ -188,27 +230,27 @@ export function TransactionCard({
                 action="approve"
                 status={tx.status}
                 fallback={
-                  <button
-                    disabled
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 text-slate-400 font-medium rounded-lg text-xs md:text-sm cursor-not-allowed opacity-50"
-                    title={`Status: ${tx.status} | Role: ${userRole} | Cannot approve`}
-                  >
-                    <i className="fas fa-check"></i>
-                    อนุมัติ
-                  </button>
+                  <ActionButton
+                    icon="fa-check"
+                    label="อนุมัติ"
+                    action="approve"
+                    status={tx.status}
+                    isEnabled={false}
+                    isLoading={false}
+                    statusColor={approvedColor}
+                  />
                 }
               >
-                <button
-                  onClick={() => {
-                    logAction("approve");
-                    onApprove?.(tx.id);
-                  }}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium rounded-lg transition-colors text-xs md:text-sm"
-                  title={`User Role: ${userRole} | Status: ${tx.status}`}
-                >
-                  <i className="fas fa-check"></i>
-                  อนุมัติ
-                </button>
+                <ActionButton
+                  icon="fa-check"
+                  label="อนุมัติ"
+                  action="approve"
+                  status={tx.status}
+                  isEnabled={true}
+                  isLoading={loadingAction === "approve"}
+                  statusColor={approvedColor}
+                  onClick={handleApproveClick}
+                />
               </ActionGuard>
 
               {/* Reject Button */}
@@ -216,27 +258,27 @@ export function TransactionCard({
                 action="reject"
                 status={tx.status}
                 fallback={
-                  <button
-                    disabled
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 text-slate-400 font-medium rounded-lg text-xs md:text-sm cursor-not-allowed opacity-50"
-                    title={`Status: ${tx.status} | Role: ${userRole} | Cannot reject`}
-                  >
-                    <i className="fas fa-times"></i>
-                    ปฏิเสธ
-                  </button>
+                  <ActionButton
+                    icon="fa-times"
+                    label="ปฏิเสธ"
+                    action="reject"
+                    status={tx.status}
+                    isEnabled={false}
+                    isLoading={false}
+                    statusColor={rejectColor}
+                  />
                 }
               >
-                <button
-                  onClick={() => {
-                    logAction("reject");
-                    onReject?.(tx.id);
-                  }}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 font-medium rounded-lg transition-colors text-xs md:text-sm"
-                  title={`User Role: ${userRole} | Status: ${tx.status}`}
-                >
-                  <i className="fas fa-times"></i>
-                  ปฏิเสธ
-                </button>
+                <ActionButton
+                  icon="fa-times"
+                  label="ปฏิเสธ"
+                  action="reject"
+                  status={tx.status}
+                  isEnabled={true}
+                  isLoading={loadingAction === "reject"}
+                  statusColor={rejectColor}
+                  onClick={handleRejectClick}
+                />
               </ActionGuard>
 
               {/* Pay Button */}
@@ -244,32 +286,39 @@ export function TransactionCard({
                 action="pay"
                 status={tx.status}
                 fallback={
-                  <button
-                    disabled
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 text-slate-400 font-medium rounded-lg text-xs md:text-sm cursor-not-allowed opacity-50"
-                    title={`Status: ${tx.status} | Role: ${userRole} | Cannot pay`}
-                  >
-                    <i className="fas fa-money-bill"></i>
-                    ชำระแล้ว
-                  </button>
+                  <ActionButton
+                    icon="fa-money-bill"
+                    label={tx.status === "paid" ? "ชำระแล้ว" : "ชำระ"}
+                    action="pay"
+                    status={tx.status}
+                    isEnabled={false}
+                    isLoading={false}
+                    statusColor={paidColor}
+                  />
                 }
               >
-                <button
-                  onClick={() => {
-                    logAction("pay");
-                    onPay?.(tx.id);
-                  }}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium rounded-lg transition-colors text-xs md:text-sm"
-                  title={`User Role: ${userRole} | Status: ${tx.status}`}
-                >
-                  <i className="fas fa-money-bill"></i>
-                  ชำระแล้ว
-                </button>
+                <ActionButton
+                  icon="fa-money-bill"
+                  label="ชำระ"
+                  action="pay"
+                  status={tx.status}
+                  isEnabled={true}
+                  isLoading={loadingAction === "pay"}
+                  statusColor={paidColor}
+                  onClick={handlePayClick}
+                />
               </ActionGuard>
             </div>
           )}
         </div>
       </div>
+
+      {/* Transaction Detail Modal */}
+      <TransactionDetailModal
+        isOpen={showDetailModal}
+        transactionId={tx.id}
+        onClose={() => setShowDetailModal(false)}
+      />
     </Card>
   );
 }

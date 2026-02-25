@@ -30,6 +30,7 @@ export const PERMISSIONS: Record<UserRole, PermissionKey[]> = {
     "create_transaction",
     "approve_transaction",
     "reject_transaction",
+    "pay_transaction",
   ],
 
   admin: [
@@ -111,17 +112,17 @@ export const ACTION_RULES: Record<
    */
   reject_transaction: (role: UserRole, context?: { status?: string }) => {
     if (role !== "owner") return false;
-    return context?.status === "pending" || context?.status === "approved";
+    return context?.status === "pending";
   },
 
   /**
    * Can user pay transaction?
    * Rules:
-   * - Only admin can pay
+   * - Admin and owner can pay
    * - Transaction must be in 'approved' status
    */
   pay_transaction: (role: UserRole, context?: { status?: string }) => {
-    if (role !== "admin") return false;
+    if (role !== "admin" && role !== "owner") return false;
     return context?.status === "approved";
   },
 };

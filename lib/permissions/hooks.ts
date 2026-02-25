@@ -94,7 +94,7 @@ export function useCanReject(): boolean {
  */
 export function useCanPay(): boolean {
   const role = useUserRole();
-  return role === "admin";
+  return role === "admin" || role === "owner";
 }
 
 /**
@@ -151,7 +151,7 @@ export function useWorkflowVisibility() {
     () => ({
       canApprove: role === "owner",
       canReject: role === "owner",
-      canPay: role === "admin",
+      canPay: role === "admin" || role === "owner",
       canView: true, // Everyone can view their transactions
       showWorkflowSection: role === "owner" || role === "admin",
     }),

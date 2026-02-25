@@ -54,7 +54,7 @@ export function WithdrawModal({
       bankAccountId: "",
       itemName: "",
       category: "",
-      type: "",
+      payment_method: "",
       district_id: "",
       sub_district_id: "",
       amount: "",
@@ -70,7 +70,7 @@ export function WithdrawModal({
     useSubDistrictsByDistrict(districtValue || null);
 
   const amountValue = watch("amount");
-  const typeValue = watch("type");
+  const paymentMethodValue = watch("payment_method");
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (acceptedFiles) => {
@@ -197,13 +197,13 @@ export function WithdrawModal({
             required
           />
 
-          {/* Type */}
+          {/* Payment Method */}
           <Select
             label="ประเภท"
-            register={register("type", {
+            register={register("payment_method", {
               required: "กรุณาเลือกประเภท",
             })}
-            error={errors.type}
+            error={errors.payment_method}
             options={[
               { value: "cash", label: "เงินสด" },
               { value: "transfer", label: "โอนเงิน" },
@@ -251,7 +251,7 @@ export function WithdrawModal({
         </div>
 
         {/* Bank Account Selection - Required only for transfer */}
-        {typeValue === "transfer" && (
+        {paymentMethodValue === "transfer" && (
           <Select
             label="บัญชีธนาคาร"
             register={register("bankAccountId", {

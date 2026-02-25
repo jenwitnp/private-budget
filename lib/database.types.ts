@@ -265,7 +265,7 @@ export type Database = {
           currency: string;
           description: string | null;
           notes: string | null;
-          status: "pending" | "success" | "failed" | "cancelled" | "rejected";
+          status: "pending" | "approved" | "rejected" | "paid";
           status_changed_at: string | null;
           status_changed_by: string | null;
           recipient_name: string | null;
@@ -294,7 +294,7 @@ export type Database = {
           currency?: string;
           description?: string | null;
           notes?: string | null;
-          status?: "pending" | "success" | "failed" | "cancelled" | "rejected";
+          status?: "pending" | "approved" | "rejected" | "paid";
           status_changed_at?: string | null;
           status_changed_by?: string | null;
           recipient_name?: string | null;
@@ -323,7 +323,7 @@ export type Database = {
           currency?: string;
           description?: string | null;
           notes?: string | null;
-          status?: "pending" | "success" | "failed" | "cancelled" | "rejected";
+          status?: "pending" | "approved" | "rejected" | "paid";
           status_changed_at?: string | null;
           status_changed_by?: string | null;
           recipient_name?: string | null;
@@ -378,20 +378,8 @@ export type Database = {
         Row: {
           id: string;
           transaction_id: string;
-          old_status:
-            | "pending"
-            | "success"
-            | "failed"
-            | "cancelled"
-            | "rejected"
-            | null;
-          new_status:
-            | "pending"
-            | "success"
-            | "failed"
-            | "cancelled"
-            | "rejected"
-            | null;
+          old_status: "pending" | "approved" | "rejected" | "paid" | null;
+          new_status: "pending" | "approved" | "rejected" | "paid" | null;
           changed_by: string | null;
           change_reason: string | null;
           created_at: string;
@@ -401,20 +389,8 @@ export type Database = {
         Insert: {
           id?: string;
           transaction_id: string;
-          old_status?:
-            | "pending"
-            | "success"
-            | "failed"
-            | "cancelled"
-            | "rejected"
-            | null;
-          new_status?:
-            | "pending"
-            | "success"
-            | "failed"
-            | "cancelled"
-            | "rejected"
-            | null;
+          old_status?: "pending" | "approved" | "rejected" | "paid" | null;
+          new_status?: "pending" | "approved" | "rejected" | "paid" | null;
           changed_by?: string | null;
           change_reason?: string | null;
           created_at?: string;
@@ -424,20 +400,8 @@ export type Database = {
         Update: {
           id?: string;
           transaction_id?: string;
-          old_status?:
-            | "pending"
-            | "success"
-            | "failed"
-            | "cancelled"
-            | "rejected"
-            | null;
-          new_status?:
-            | "pending"
-            | "success"
-            | "failed"
-            | "cancelled"
-            | "rejected"
-            | null;
+          old_status?: "pending" | "approved" | "rejected" | "paid" | null;
+          new_status?: "pending" | "approved" | "rejected" | "paid" | null;
           changed_by?: string | null;
           change_reason?: string | null;
           created_at?: string;
@@ -964,12 +928,7 @@ export type Database = {
         | "HSBC"
         | "CITIBANK"
         | "OTHER";
-      transaction_status:
-        | "pending"
-        | "success"
-        | "failed"
-        | "cancelled"
-        | "rejected";
+      transaction_status: "pending" | "approved" | "rejected" | "paid";
       user_role: "user" | "admin" | "moderator";
       user_status: "active" | "inactive" | "suspended" | "deleted";
     };

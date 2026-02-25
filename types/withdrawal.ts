@@ -6,7 +6,7 @@ export interface WithdrawFormData {
   bankAccountId: string;
   itemName: string;
   category?: string;
-  type: string;
+  payment_method: string;
   district_id?: string;
   sub_district_id?: string;
   amount: string | number;

@@ -10,6 +10,7 @@ interface CurrencyInputProps {
   required?: boolean;
   prefix?: string;
   decimalsLimit?: number;
+  value?: string | number;
 }
 
 export function CurrencyInput({
@@ -20,6 +21,7 @@ export function CurrencyInput({
   required = false,
   prefix = "฿",
   decimalsLimit = 2,
+  value,
 }: CurrencyInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -56,6 +58,7 @@ export function CurrencyInput({
         decimalsLimit={decimalsLimit}
         decimalSeparator="."
         groupSeparator=","
+        value={value}
         {...register}
         className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-colors text-slate-800 pl-4 ${
           error

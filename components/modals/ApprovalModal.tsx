@@ -1,6 +1,7 @@
 /**
  * Approval Modal Component
  * Modal for approving a pending transaction
+ * Shows full transaction details before approval action
  */
 
 "use client";
@@ -8,8 +9,11 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useSession } from "next-auth/react";
+import type { QueryClient } from "@tanstack/react-query";
 import { Modal } from "@/components/ui/Modal";
 import { Textarea } from "@/components/form/Textarea";
+import { TransactionDetailContent } from "@/components/TransactionDetailContent";
+import { useTransactionDetail } from "@/hooks/useTransactionDetail";
 import { approveTransactionAction } from "@/actions/workflow";
 
 interface ApprovalModalProps {
@@ -17,6 +21,8 @@ interface ApprovalModalProps {
   transactionId: string;
   onClose: () => void;
   onSuccess?: () => void;
+  onError?: (error: string) => void;
+  queryClient?: QueryClient;
 }
 
 interface ApprovalFormData {
@@ -28,8 +34,15 @@ export function ApprovalModal({
   transactionId,
   onClose,
   onSuccess,
+  onError,
+  queryClient,
 }: ApprovalModalProps) {
   const { data: session } = useSession();
+  const {
+    data: transaction,
+    isLoading: transactionLoading,
+    error: transactionError,
+  } = useTransactionDetail(isOpen ? transactionId : null);
   const {
     register,
     handleSubmit,
@@ -48,6 +61,12 @@ export function ApprovalModal({
         throw new Error("User session not found");
       }
 
+      console.group("📤 [ApprovalModal] Submitting approval");
+      console.log("Transaction ID:", transactionId);
+      console.log("User ID:", session.user.id);
+      console.log("Notes:", data.notes);
+      console.groupEnd();
+
       await approveTransactionAction(
         transactionId,
         session.user.id,
@@ -55,13 +74,23 @@ export function ApprovalModal({
         data.notes,
       );
 
+      console.log("✅ [ApprovalModal] Approval successful");
+
+      // Invalidate cache to refetch transactions
+      if (queryClient) {
+        console.log("🔄 [ApprovalModal] Invalidating transactions cache");
+        queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      }
+
       reset();
       onSuccess?.();
       onClose();
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Error approving transaction";
+      console.error("❌ [ApprovalModal] Error:", errorMessage);
       setError(errorMessage);
+      onError?.(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -72,56 +101,83 @@ export function ApprovalModal({
       isOpen={isOpen}
       onClose={onClose}
       title="อนุมัติรายการ"
-      isLoading={isLoading}
+      isLoading={isLoading || transactionLoading}
+      size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-md">
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-            <i className="fas fa-exclamation-circle mr-2"></i>
-            {error}
-          </div>
+      <div className="max-h-[85vh] overflow-y-auto">
+        {/* Transaction Details Section */}
+        {transaction && (
+          <>
+            <TransactionDetailContent
+              transaction={transaction}
+              isLoading={transactionLoading}
+              error={transactionError as Error | null}
+            />
+
+            {/* Divider */}
+            <div className="border-t border-slate-200 my-6"></div>
+
+            {/* Approval Form Section */}
+            <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+              <div>
+                <h3 className="text-sm font-bold text-slate-800 mb-4">
+                  <i className="fas fa-check-circle text-blue-600 mr-2"></i>
+                  ยืนยันการอนุมัติ
+                </h3>
+
+                {error && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                    <i className="fas fa-exclamation-circle mr-2"></i>
+                    {error}
+                  </div>
+                )}
+
+                <p className="text-sm text-slate-600 mb-4">
+                  คุณกำลังจะอนุมัติรายการถอนเงินนี้
+                  ท่านสามารถเพิ่มหมายเหตุได้หากจำเป็น
+                </p>
+
+                <Textarea
+                  label="หมายเหตุ"
+                  register={register("notes")}
+                  placeholder="เพิ่มหมายเหตุเกี่ยวกับการอนุมัติ..."
+                  error={errors.notes}
+                  rows={3}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={isLoading}
+                  className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isLoading ? (
+                    <>
+                      <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      กำลังประมวลผล...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-check-circle"></i>
+                      อนุมัติ
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </>
         )}
-
-        <div className="mb-6">
-          <p className="text-sm text-slate-600 mb-4">
-            คุณกำลังจะอนุมัติรายการถอนเงินนี้
-            ท่านสามารถเพิ่มหมายเหตุได้หากจำเป็น
-          </p>
-
-          <Textarea
-            label="หมายเหตุ"
-            register={register("notes")}
-            placeholder="เพิ่มหมายเหตุเกี่ยวกับการอนุมัติ..."
-            error={errors.notes}
-            rows={4}
-          />
-        </div>
-
-        <div className="flex gap-3 pt-6 border-t border-slate-200">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isLoading}
-            className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            ยกเลิก
-          </button>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {isLoading ? (
-              <>
-                <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                กำลังประมวลผล...
-              </>
-            ) : (
-              "อนุมัติ"
-            )}
-          </button>
-        </div>
-      </form>
+      </div>
     </Modal>
   );
 }
