@@ -23,9 +23,124 @@ export interface Transaction {
   sub_districts_id: number | null;
 }
 
+/**
+ * Client-formatted transaction (returned by getTransactions)
+ * This is the single source of truth for client data structure
+ */
+export interface ClientTransaction {
+  id: string;
+  transactionNumber: string;
+  account: string;
+  amount: number;
+  displayAmount: number;
+  itemName: string;
+  status: "pending" | "approved" | "rejected" | "paid";
+  date: string;
+  bankAccount: string;
+  userId?: string;
+  createdByName?: string;
+  approvedByName?: string;
+  paidByName?: string;
+  paymentMethod?: string;
+  categoryName?: string;
+  districtName?: string;
+}
+
 export interface TransactionWithBankDetails extends Transaction {
   account?: string;
   bankAccount?: string;
+}
+
+/**
+ * Detailed transaction view with full category and user information
+ * This is the enriched view combining transactions with related entities
+ */
+export interface TransactionDetailWithCategories {
+  // Core transaction fields
+  id: string;
+  transaction_number: string;
+  amount: number;
+  net_amount: number | null;
+  fee_amount: number | null;
+  currency: string;
+  status: "pending" | "approved" | "rejected" | "paid";
+  item_name: string;
+  description: string | null;
+  notes: string | null;
+  payment_method: string | null;
+  transaction_date: string;
+  created_at: string;
+  updated_at: string;
+
+  // User information
+  user_id: string;
+  user_username: string;
+  user_first_name: string;
+  user_last_name: string;
+  user_full_name: string;
+  user_email: string;
+  user_phone: string | null;
+  user_id_card: string | null;
+  user_role: string;
+
+  // Bank account information
+  bank_account_id: string | null;
+  account_number: string | null;
+  account_name: string | null;
+  bank: string | null;
+  bank_name: string | null;
+  branch_name: string | null;
+  account_holder_name: string | null;
+  account_holder_id_card: string | null;
+  bank_account_is_primary: boolean | null;
+  bank_account_is_active: boolean | null;
+  bank_account_verified: boolean | null;
+  account_balance: number | null;
+
+  // District information
+  district_id: number | null;
+  district_name: string | null;
+  province: string | null;
+
+  // Sub-district information
+  sub_district_id: number | null;
+  sub_district_name: string | null;
+  villages_count: number | null;
+
+  // Category information
+  category_id: string | null;
+  category_name: string | null;
+  category_description: string | null;
+  category_color: string | null;
+  category_icon: string | null;
+
+  // Approval information
+  approved_by_id: string | null;
+  approved_by_name: string | null;
+  approved_by_username: string | null;
+  approved_at: string | null;
+
+  // Rejection information
+  rejected_by_id: string | null;
+  rejected_by_name: string | null;
+  rejected_by_username: string | null;
+  rejected_at: string | null;
+
+  // Payment information
+  paid_by_id: string | null;
+  paid_by_name: string | null;
+  paid_by_username: string | null;
+  paid_at: string | null;
+
+  // Created by information
+  created_by_id: string | null;
+  created_by_name: string | null;
+
+  // Error information
+  error_code: string | null;
+  error_message: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
 }
 
 /**
@@ -47,7 +162,7 @@ export interface GetTransactionsRequest {
  */
 export interface GetTransactionsResponse {
   success: boolean;
-  data?: Transaction[];
+  data?: ClientTransaction[];
   total?: number;
   currentPage?: number;
   pageSize?: number;
@@ -161,38 +276,66 @@ export async function getTransactions(
         ]
       : [];
 
-    const result = await fetchData<Transaction>("transactions", {
-      filters: { ...filters },
-      search: searchConfig,
-      sort: [sortColumn, sortOrder],
-      page: pageParam,
-      pageSize,
-      total: { count: "exact" },
-      lte,
-      gte,
-    });
+    const result = await fetchData<TransactionDetailWithCategories>(
+      "transactions_detail_with_categories",
+      {
+        filters: { ...filters },
+        search: searchConfig,
+        sort: [sortColumn, sortOrder],
+        page: pageParam,
+        pageSize,
+        total: { count: "exact" },
+        lte,
+        gte,
+      },
+    );
 
     if (!result.success) {
       throw new Error(result.error || "Failed to fetch transactions");
     }
 
-    const data = result.data as Transaction[];
+    const data = result.data as TransactionDetailWithCategories[];
     const count = result.count || 0;
 
-    // Compute displayAmount: show net_amount if status is 'paid' and net_amount differs from amount
-    const dataWithDisplayAmount = data.map((tx) => ({
-      ...tx,
-      displayAmount:
+    // ✅ SINGLE SOURCE OF TRUTH: All formatting happens here on the server
+    // Transform database format to component format
+    const formattedData = data.map((tx) => {
+      const displayAmount =
         tx.status === "paid" &&
         tx.net_amount != null &&
         tx.net_amount !== tx.amount
           ? tx.net_amount
-          : tx.amount,
-    }));
+          : tx.amount;
+
+      // Helper to clean empty/whitespace strings
+      const cleanName = (name: string | null | undefined): string | undefined => {
+        const trimmed = name?.trim();
+        return trimmed ? trimmed : undefined;
+      };
+
+      return {
+        id: tx.id,
+        transactionNumber: tx.transaction_number,
+        account: tx.account_name || tx.description || "N/A",
+        amount: tx.amount,
+        displayAmount,
+        itemName: tx.item_name || "N/A",
+        status: tx.status as "pending" | "approved" | "rejected" | "paid",
+        date: tx.transaction_date,
+        bankAccount: tx.account_holder_name || tx.account_number || "N/A",
+        userId: tx.user_id,
+        createdByName: cleanName(tx.created_by_name),
+        approvedByName: cleanName(tx.approved_by_name),
+        paidByName: cleanName(tx.paid_by_name),
+        paymentMethod: tx.payment_method || undefined,
+        categoryName: tx.category_name || "N/A",
+        districtName: tx.district_name || "N/A",
+      };
+    });
 
     return {
       success: true,
-      data: dataWithDisplayAmount as Transaction[],
+      data: formattedData as ClientTransaction[],
       total: count,
       currentPage: pageParam,
       pageSize,
@@ -414,26 +557,45 @@ export async function payTransaction(
       );
     }
 
+    // Parse net_amount
+    let parsedNetAmount: number | null = null;
+    if (netAmount) {
+      // Remove currency symbol (฿) and commas if present
+      const cleanAmount = String(netAmount)
+        .replace(/฿/g, "") // Remove Thai baht symbol
+        .replace(/,/g, ""); // Remove commas
+
+      parsedNetAmount = parseFloat(cleanAmount);
+
+      if (isNaN(parsedNetAmount)) {
+        parsedNetAmount = null;
+      }
+    }
+
+    // Prepare update payload
+    const updatePayload = {
+      status: "paid",
+      status_changed_at: new Date().toISOString(),
+      status_changed_by: userId,
+      processed_at: new Date().toISOString(),
+      completed_at: new Date().toISOString(),
+      net_amount: parsedNetAmount,
+      description: bankReference
+        ? `Paid with reference: ${bankReference}`
+        : "Payment processed",
+      updated_at: new Date().toISOString(),
+    };
+
     // Update transaction
     const { error: updateError } = await (supabase as any)
       .from("transactions")
-      .update({
-        status: "paid",
-        status_changed_at: new Date().toISOString(),
-        status_changed_by: userId,
-        processed_at: new Date().toISOString(),
-        completed_at: new Date().toISOString(),
-        net_amount: netAmount ? parseFloat(netAmount) : null,
-        description: bankReference
-          ? `Paid with reference: ${bankReference}`
-          : "Payment processed",
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq("id", transactionId);
 
     if (updateError) {
       throw updateError;
     }
+
     return { success: true, message: "Transaction paid successfully" };
   } catch (error) {
     const errorMessage =

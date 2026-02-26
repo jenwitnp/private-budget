@@ -22,6 +22,11 @@ interface ApprovalModalProps {
   onClose: () => void;
   onSuccess?: () => void;
   onError?: (error: string) => void;
+  onTransactionUpdate?: (
+    transactionId: string,
+    newStatus: "pending" | "approved" | "rejected" | "paid",
+    displayAmount?: number,
+  ) => void;
   queryClient?: QueryClient;
 }
 
@@ -35,6 +40,7 @@ export function ApprovalModal({
   onClose,
   onSuccess,
   onError,
+  onTransactionUpdate,
   queryClient,
 }: ApprovalModalProps) {
   const { data: session } = useSession();
@@ -61,12 +67,6 @@ export function ApprovalModal({
         throw new Error("User session not found");
       }
 
-      console.group("📤 [ApprovalModal] Submitting approval");
-      console.log("Transaction ID:", transactionId);
-      console.log("User ID:", session.user.id);
-      console.log("Notes:", data.notes);
-      console.groupEnd();
-
       await approveTransactionAction(
         transactionId,
         session.user.id,
@@ -74,11 +74,11 @@ export function ApprovalModal({
         data.notes,
       );
 
-      console.log("✅ [ApprovalModal] Approval successful");
-
-      // Invalidate cache to refetch transactions
-      if (queryClient) {
-        console.log("🔄 [ApprovalModal] Invalidating transactions cache");
+      // ✅ Update cache surgically (only this transaction re-renders)
+      if (onTransactionUpdate) {
+        onTransactionUpdate(transactionId, "approved");
+      } else if (queryClient) {
+        // Fallback: invalidate if no update callback provided
         queryClient.invalidateQueries({ queryKey: ["transactions"] });
       }
 
@@ -88,7 +88,6 @@ export function ApprovalModal({
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Error approving transaction";
-      console.error("❌ [ApprovalModal] Error:", errorMessage);
       setError(errorMessage);
       onError?.(errorMessage);
     } finally {

@@ -22,6 +22,11 @@ interface RejectionModalProps {
   onClose: () => void;
   onSuccess?: () => void;
   onError?: (error: string) => void;
+  onTransactionUpdate?: (
+    transactionId: string,
+    newStatus: "pending" | "approved" | "rejected" | "paid",
+    displayAmount?: number,
+  ) => void;
   queryClient?: QueryClient;
 }
 
@@ -35,6 +40,7 @@ export function RejectionModal({
   onClose,
   onSuccess,
   onError,
+  onTransactionUpdate,
   queryClient,
 }: RejectionModalProps) {
   const { data: session } = useSession();
@@ -52,17 +58,6 @@ export function RejectionModal({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Debug: Log transaction status when modal opens/data loads
-  useEffect(() => {
-    if (isOpen && transaction) {
-      console.group("🔍 [RejectionModal] Transaction Loaded from Hook");
-      console.log("Transaction ID:", transaction.id);
-      console.log("Transaction Status:", transaction.status);
-      console.log("Full Transaction:", transaction);
-      console.groupEnd();
-    }
-  }, [isOpen, transaction]);
-
   const onSubmit = async (data: RejectionFormData) => {
     try {
       setIsLoading(true);
@@ -72,21 +67,6 @@ export function RejectionModal({
         throw new Error("User session not found");
       }
 
-      console.group("📤 [RejectionModal] Submitting Rejection");
-      console.log("Transaction ID:", transactionId);
-      console.log("Transaction Status FROM HOOK:", transaction?.status);
-      console.log(
-        "Expected Status: 'pending' | Actual Status:",
-        transaction?.status,
-      );
-      console.log(
-        "Match?",
-        transaction?.status === "pending" ? "✅ YES" : "❌ NO",
-      );
-      console.log("User ID:", session.user.id);
-      console.log("Reason:", data.reason);
-      console.groupEnd();
-
       await rejectTransactionAction(
         transactionId,
         session.user.id,
@@ -94,11 +74,11 @@ export function RejectionModal({
         data.reason,
       );
 
-      console.log("✅ [RejectionModal] Rejection successful");
-
-      // Invalidate cache to refetch transactions
-      if (queryClient) {
-        console.log("🔄 [RejectionModal] Invalidating transactions cache");
+      // ✅ Update cache surgically (only this transaction re-renders)
+      if (onTransactionUpdate) {
+        onTransactionUpdate(transactionId, "rejected");
+      } else if (queryClient) {
+        // Fallback: invalidate if no update callback provided
         queryClient.invalidateQueries({ queryKey: ["transactions"] });
       }
 
@@ -108,12 +88,6 @@ export function RejectionModal({
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Error rejecting transaction";
-      console.error("❌ [RejectionModal] Error:", errorMessage);
-      console.group("⚠️  [RejectionModal] Submission Failed - Debug Info");
-      console.log("Error Message:", errorMessage);
-      console.log("Transaction Status from Hook:", transaction?.status);
-      console.log("Expected: pending | Actual:", transaction?.status);
-      console.groupEnd();
       setError(errorMessage);
       onError?.(errorMessage);
     } finally {

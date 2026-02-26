@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import React from "react";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ActionButton } from "@/components/ActionButton";
 import { TransactionDetailModal } from "@/components/modals/TransactionDetailModal";
 import { useWorkflowVisibility, useUserRole } from "@/lib/permissions/hooks";
 import { ActionGuard } from "@/lib/permissions/guards";
+import { useWorkflow } from "@/lib/context/WorkflowContext";
 
 export interface Transaction {
   id: string; // UUID primary key
@@ -19,23 +21,23 @@ export interface Transaction {
   bankAccount: string;
   userId?: string;
   itemName: string;
+  createdByName?: string; // Who requested the withdrawal
+  approvedByName?: string; // Who approved the transaction
+  paidByName?: string; // Who paid the transaction
+  paymentMethod?: string; // 'cash' or 'transfer'
+  categoryName?: string; // Category name
+  districtName?: string; // District name
 }
 
 interface TransactionCardProps {
   transaction: Transaction;
-  onApprove?: (transactionId: string) => void;
-  onReject?: (transactionId: string) => void;
-  onPay?: (transactionId: string) => void;
 }
 
-export function TransactionCard({
-  transaction: tx,
-  onApprove,
-  onReject,
-  onPay,
-}: TransactionCardProps) {
+function _TransactionCard({ transaction: tx }: TransactionCardProps) {
   const workflow = useWorkflowVisibility();
   const userRole = useUserRole();
+  const { handleApprove, handleReject, handlePay, workflowAction } =
+    useWorkflow();
   const [showDetailModal, setShowDetailModal] = useState(false);
 
   // Optimistic update state
@@ -43,6 +45,14 @@ export function TransactionCard({
   const [loadingAction, setLoadingAction] = useState<
     "approve" | "reject" | "pay" | null
   >(null);
+
+  // ✅ Clear loading state when modal closes (user closes without action)
+  useEffect(() => {
+    if (workflowAction.type === null && loadingAction !== null) {
+      setLoadingAction(null);
+      setOptimisticStatus(null);
+    }
+  }, [workflowAction.type]);
 
   // Display status - use optimistic if available, otherwise use actual
   const displayStatus = (optimisticStatus ||
@@ -66,7 +76,7 @@ export function TransactionCard({
     logAction("approve");
     setOptimisticStatus("approved");
     setLoadingAction("approve");
-    onApprove?.(tx.id);
+    handleApprove(tx.id);
   };
 
   // Handle reject with optimistic update
@@ -74,7 +84,7 @@ export function TransactionCard({
     logAction("reject");
     setOptimisticStatus("rejected");
     setLoadingAction("reject");
-    onReject?.(tx.id);
+    handleReject(tx.id);
   };
 
   // Handle pay with optimistic update
@@ -82,7 +92,7 @@ export function TransactionCard({
     logAction("pay");
     setOptimisticStatus("paid");
     setLoadingAction("pay");
-    onPay?.(tx.id);
+    handlePay(tx.id);
   };
 
   // Callback to revert optimistic update on error
@@ -183,8 +193,39 @@ export function TransactionCard({
             {tx.itemName}
           </p>
           <p className="text-xs text-slate-500 font-num font-medium">
-            {tx.bankAccount}
+            {tx.paymentMethod === "cash" ? "เงินสด" : "โอน"} - {tx.categoryName}{" "}
+            {tx.districtName ? `- ${tx.districtName}` : ""}{" "}
+            {tx.districtName ? `- ${tx.districtName}` : ""}
           </p>
+        </div>
+        <div className="mb-4 flex justify-between pb-4 border-b border-slate-100">
+          <div>
+            <p className="text-xs text-slate-500 font-medium mb-1.5">
+              ผู้ขอเบิก
+            </p>
+
+            <p className="text-xs text-slate-800 font-num font-medium">
+              {tx.createdByName?.trim() || "N/A"}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-500 font-medium mb-1.5">
+              ผู้อนุมัติ
+            </p>
+
+            <p className="text-xs text-slate-800 font-num font-medium">
+              {tx.approvedByName?.trim() || "N/A"}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-500 font-medium mb-1.5">
+              ผู้จ่ายเงิน
+            </p>
+
+            <p className="text-xs text-slate-800 font-num font-medium">
+              {tx.paidByName?.trim() || "N/A"}
+            </p>
+          </div>
         </div>
 
         {/* Amount and Date Row */}
@@ -322,3 +363,6 @@ export function TransactionCard({
     </Card>
   );
 }
+
+// ✅ Memoized export - prevents re-renders when props haven't changed
+export const TransactionCard = React.memo(_TransactionCard);

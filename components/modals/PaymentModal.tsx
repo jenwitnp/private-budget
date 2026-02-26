@@ -23,6 +23,11 @@ interface PaymentModalProps {
   onClose: () => void;
   onSuccess?: () => void;
   onError?: (error: string) => void;
+  onTransactionUpdate?: (
+    transactionId: string,
+    newStatus: "pending" | "approved" | "rejected" | "paid",
+    displayAmount?: number,
+  ) => void;
   queryClient?: QueryClient;
 }
 
@@ -37,6 +42,7 @@ export function PaymentModal({
   onClose,
   onSuccess,
   onError,
+  onTransactionUpdate,
   queryClient,
 }: PaymentModalProps) {
   const { data: session } = useSession();
@@ -77,16 +83,30 @@ export function PaymentModal({
         throw new Error("User session not found");
       }
 
+      // Clean net_amount: remove currency symbol and commas
+      const cleanNetAmount = data.net_amount
+        ? String(data.net_amount)
+            .replace(/฿/g, "") // Remove Thai baht symbol
+            .replace(/,/g, "") // Remove commas
+        : data.net_amount;
+
       await payTransactionAction(
         transactionId,
         session.user.id,
         session.user.role || "",
         data.bankReference,
-        data.net_amount,
+        cleanNetAmount, // Send cleaned value
       );
 
-      // Invalidate cache to refetch transactions
-      if (queryClient) {
+      // ✅ Update cache surgically (only this transaction re-renders)
+      if (onTransactionUpdate) {
+        // Convert cleanNetAmount to number for displayAmount
+        const displayAmount = cleanNetAmount
+          ? parseFloat(String(cleanNetAmount))
+          : undefined;
+        onTransactionUpdate(transactionId, "paid", displayAmount);
+      } else if (queryClient) {
+        // Fallback: invalidate if no update callback provided
         queryClient.invalidateQueries({ queryKey: ["transactions"] });
       }
 

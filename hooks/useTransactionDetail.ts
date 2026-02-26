@@ -6,7 +6,6 @@ import type { TransactionDetailWithCategory } from "@/lib/database.views";
 
 /**
  * Hook to fetch complete transaction details from the view with category information
- * Uses cache to share data between modals in workflow
  */
 export function useTransactionDetail(transactionId: string | null) {
   return useQuery({
@@ -29,8 +28,5 @@ export function useTransactionDetail(transactionId: string | null) {
       return data as TransactionDetailWithCategory;
     },
     enabled: !!transactionId,
-    // Cache configuration for workflow modal persistence
-    staleTime: 5 * 60 * 1000, // Keep data fresh for 5 minutes
-    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes (garbage collection time)
   });
 }

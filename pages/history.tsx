@@ -8,50 +8,40 @@ import { Card } from "@/components/ui/Card";
 import { Input, Select } from "@/components/ui/Forms";
 import { TransactionFilters } from "@/components/TransactionFilters";
 import { WithdrawModal } from "@/components/modals/WithdrawModal";
-import { ApprovalModal } from "@/components/modals/ApprovalModal";
-import { RejectionModal } from "@/components/modals/RejectionModal";
-import { PaymentModal } from "@/components/modals/PaymentModal";
 import { TransactionCard } from "@/components/TransactionCard";
 import { ToastContainer } from "@/components/ToastContainer";
-import { useUserRole, usePermissions } from "@/lib/permissions/hooks";
+import { usePermissions } from "@/lib/permissions/hooks";
 import { getTransactionsAction } from "@/actions/transactions";
 import { useToast } from "@/hooks/useToast";
+import { WorkflowProvider } from "@/lib/context/WorkflowContext";
 import {
   parseTransactionFiltersFromQuery,
   buildApiFilters,
 } from "@/lib/helpers/transaction-query-helper";
 import type { WithdrawFormData } from "@/types/withdrawal";
 import type { Transaction } from "@/components/TransactionCard";
+import type { ClientTransaction } from "@/server/transactions.server";
 
 type TransactionResponse = Awaited<ReturnType<typeof getTransactionsAction>>;
 
-export default function HistoryPage() {
+// ✅ Inner component that uses the workflow context
+function _HistoryPageContent({
+  filters,
+  setFilters,
+  error,
+  setError,
+}: {
+  filters: any;
+  setFilters: (filters: any) => void;
+  error: string | null;
+  setError: (error: string | null) => void;
+}) {
+  // ✅ Workflow context is now used directly within TransactionCard
   const { data: session } = useSession();
   const router = useRouter();
-  const userRole = useUserRole();
-  const permissions = usePermissions();
-  const queryClient = useQueryClient();
-  const { toasts, showToast, removeToast } = useToast();
+  const { toasts, removeToast } = useToast();
 
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Filter states combined into single object
-  const [filters, setFilters] = useState({
-    searchTerm: "",
-    statusFilter: "all" as "all" | "pending" | "approved" | "rejected" | "paid",
-    dateStart: "",
-    dateEnd: "",
-    categoryId: "",
-    districtId: "",
-    subDistrictId: "",
-  });
-
-  // Workflow action states
-  const [workflowAction, setWorkflowAction] = useState<{
-    type: "approve" | "reject" | "pay" | null;
-    transactionId: string | null;
-  }>({ type: null, transactionId: null });
 
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -134,22 +124,10 @@ export default function HistoryPage() {
     enabled: !!session?.user,
   });
 
-  // Flatten all transactions from all pages
-  const transactions: Transaction[] = (data?.pages || [])
-    .flatMap((page) => page.data || [])
-    .map(
-      (tx: any) =>
-        ({
-          id: tx.id,
-          transactionNumber: tx.transaction_number,
-          account: tx.account || "N/A",
-          amount: tx.amount,
-          itemName: tx.item_name,
-          status: tx.status as "pending" | "approved" | "rejected" | "paid",
-          date: tx.transaction_date,
-          bankAccount: tx.bankAccount || "N/A",
-        }) as Transaction,
-    );
+  // Flatten all transactions from all pages (already fully formatted by server)
+  const transactions = (data?.pages || []).flatMap(
+    (page) => page.data || [],
+  ) as ClientTransaction[];
 
   // Intersection observer for infinite scroll
   useEffect(() => {
@@ -187,54 +165,6 @@ export default function HistoryPage() {
       const errorMessage = err instanceof Error ? err.message : "Error";
       setError(errorMessage);
     }
-  };
-
-  // Workflow action handlers
-  const handleApprove = async (transactionId: string) => {
-    if (!permissions.canApproveTransaction("pending")) {
-      setError("คุณไม่มีสิทธิ์อนุมัติรายการนี้");
-      return;
-    }
-    setWorkflowAction({ type: "approve", transactionId });
-    console.log("🔵 Opening approval modal for:", transactionId);
-  };
-
-  const handleReject = async (transactionId: string) => {
-    if (!permissions.canRejectTransaction("pending")) {
-      setError("คุณไม่มีสิทธิ์ปฏิเสธรายการนี้");
-      return;
-    }
-    setWorkflowAction({ type: "reject", transactionId });
-    console.log("🔴 Opening rejection modal for:", transactionId);
-  };
-
-  const handlePay = async (transactionId: string) => {
-    if (!permissions.canPayTransaction("approved")) {
-      setError("คุณไม่มีสิทธิ์ทำการชำระเงินรายการนี้");
-      return;
-    }
-    setWorkflowAction({ type: "pay", transactionId });
-    console.log("💚 Opening payment modal for:", transactionId);
-  };
-
-  // Handle successful action completion
-  const handleActionSuccess = (actionType: string) => {
-    console.log(`✅ ${actionType} action completed successfully`);
-    // Invalidate transactions cache to refetch with updated status
-    queryClient.invalidateQueries({ queryKey: ["transactions"] });
-    // Close modal
-    setWorkflowAction({ type: null, transactionId: null });
-    // Show success toast
-    showToast(`${actionType} สำเร็จ`, "success", 3000);
-  };
-
-  // Handle action error
-  const handleActionError = (actionType: string, error: string) => {
-    console.log(`❌ ${actionType} action failed:`, error);
-    // Close modal
-    setWorkflowAction({ type: null, transactionId: null });
-    // Show error toast
-    showToast(`${actionType} ล้มเหลว: ${error}`, "error", 5000);
   };
 
   return (
@@ -281,13 +211,7 @@ export default function HistoryPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6">
             {transactions.length > 0 ? (
               transactions.map((tx) => (
-                <TransactionCard
-                  key={tx.id}
-                  transaction={tx}
-                  onApprove={handleApprove}
-                  onReject={handleReject}
-                  onPay={handlePay}
-                />
+                <TransactionCard key={tx.id} transaction={tx} />
               ))
             ) : (
               /* Empty State */
@@ -356,36 +280,44 @@ export default function HistoryPage() {
         onClose={() => setIsWithdrawModalOpen(false)}
         onSubmit={handleWithdrawSubmit}
       />
-
-      {/* Approval Modal */}
-      <ApprovalModal
-        isOpen={workflowAction.type === "approve"}
-        transactionId={workflowAction.transactionId || ""}
-        onClose={() => setWorkflowAction({ type: null, transactionId: null })}
-        onSuccess={() => handleActionSuccess("อนุมัติ")}
-        onError={(error) => handleActionError("อนุมัติ", error)}
-        queryClient={queryClient}
-      />
-
-      {/* Rejection Modal */}
-      <RejectionModal
-        isOpen={workflowAction.type === "reject"}
-        transactionId={workflowAction.transactionId || ""}
-        onClose={() => setWorkflowAction({ type: null, transactionId: null })}
-        onSuccess={() => handleActionSuccess("ปฏิเสธ")}
-        onError={(error) => handleActionError("ปฏิเสธ", error)}
-        queryClient={queryClient}
-      />
-
-      {/* Payment Modal */}
-      <PaymentModal
-        isOpen={workflowAction.type === "pay"}
-        transactionId={workflowAction.transactionId || ""}
-        onClose={() => setWorkflowAction({ type: null, transactionId: null })}
-        onSuccess={() => handleActionSuccess("ชำระแล้ว")}
-        onError={(error) => handleActionError("ชำระแล้ว", error)}
-        queryClient={queryClient}
-      />
     </DashboardLayout>
+  );
+}
+
+// ✅ Wrapper with WorkflowContext provider
+export default function HistoryPage() {
+  const queryClient = useQueryClient();
+  const permissions = usePermissions();
+  const { data: session } = useSession();
+  const { showToast } = useToast();
+
+  // Shared state
+  const [filters, setFilters] = useState({
+    searchTerm: "",
+    statusFilter: "all" as "all" | "pending" | "approved" | "rejected" | "paid",
+    dateStart: "",
+    dateEnd: "",
+    categoryId: "",
+    districtId: "",
+    subDistrictId: "",
+  });
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <WorkflowProvider
+      queryClient={queryClient}
+      permissions={permissions}
+      session={session}
+      filters={filters}
+      showToast={showToast}
+      setError={setError}
+    >
+      <_HistoryPageContent
+        filters={filters}
+        setFilters={setFilters}
+        error={error}
+        setError={setError}
+      />
+    </WorkflowProvider>
   );
 }

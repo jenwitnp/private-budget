@@ -191,8 +191,14 @@ export async function payTransactionAction(
       transactionId,
       "\n├─ userId:",
       userId,
-      "\n└─ bankReference:",
+      "\n├─ userRole:",
+      userRole,
+      "\n├─ bankReference:",
       bankReference,
+      "\n├─ netAmount (received):",
+      netAmount,
+      "\n└─ netAmount type:",
+      typeof netAmount,
     );
 
     console.log(

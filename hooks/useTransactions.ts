@@ -1,5 +1,5 @@
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
-import type { Transaction } from "@/server/transactions.server";
+import type { ClientTransaction } from "@/server/transactions.server";
 import { getTransactionsAction } from "@/actions/transactions";
 
 const QUERY_KEY = ["transactions"];
@@ -11,9 +11,12 @@ export function useTransactions(
   user: { id?: string; role?: string } | null,
   page: number = 1,
   pageSize: number = 10,
-  options?: UseQueryOptions<{ data: Transaction[]; total: number }, Error>,
+  options?: UseQueryOptions<
+    { data: ClientTransaction[]; total: number },
+    Error
+  >,
 ) {
-  return useQuery<{ data: Transaction[]; total: number }, Error>({
+  return useQuery<{ data: ClientTransaction[]; total: number }, Error>({
     queryKey: [...QUERY_KEY, user?.id, page, pageSize],
     queryFn: async () => {
       if (!user?.id) {
@@ -27,7 +30,10 @@ export function useTransactions(
       if (!result.success) {
         throw new Error(result.error || "Failed to fetch transactions");
       }
-      return { data: result.data || [], total: result.total || 0 };
+      return {
+        data: (result.data as ClientTransaction[]) || [],
+        total: result.total || 0,
+      };
     },
     enabled: !!user?.id,
     staleTime: 3 * 60 * 1000, // 3 minutes
@@ -45,9 +51,12 @@ export function useFilteredTransactions(
   pageSize: number = 10,
   statusFilter?: "all" | "pending" | "approved" | "rejected" | "paid",
   daysFilter?: number,
-  options?: UseQueryOptions<{ data: Transaction[]; total: number }, Error>,
+  options?: UseQueryOptions<
+    { data: ClientTransaction[]; total: number },
+    Error
+  >,
 ) {
-  return useQuery<{ data: Transaction[]; total: number }, Error>({
+  return useQuery<{ data: ClientTransaction[]; total: number }, Error>({
     queryKey: [
       ...QUERY_KEY,
       user?.id,
@@ -81,7 +90,7 @@ export function useFilteredTransactions(
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - daysFilter);
         transactions = transactions.filter(
-          (t) => new Date(t.transaction_date) >= cutoffDate,
+          (t) => new Date(t.date) >= cutoffDate,
         );
       }
 
