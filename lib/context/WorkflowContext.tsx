@@ -14,14 +14,22 @@ interface WorkflowContextType {
   workflowAction: {
     type: "approve" | "reject" | "pay" | null;
     transactionId: string | null;
+    transaction?: ClientTransaction | null; // Cache full transaction data
   };
   setWorkflowAction: (action: {
     type: "approve" | "reject" | "pay" | null;
     transactionId: string | null;
+    transaction?: ClientTransaction | null;
   }) => void;
-  handleApprove: (transactionId: string) => void;
-  handleReject: (transactionId: string) => void;
-  handlePay: (transactionId: string) => void;
+  handleApprove: (
+    transactionId: string,
+    transaction?: ClientTransaction,
+  ) => void;
+  handleReject: (
+    transactionId: string,
+    transaction?: ClientTransaction,
+  ) => void;
+  handlePay: (transactionId: string, transaction?: ClientTransaction) => void;
   handleActionSuccess: (actionType: string) => void;
   handleActionError: (actionType: string, error: string) => void;
   updateTransactionInCache: (
@@ -57,7 +65,8 @@ export function WorkflowProvider({
   const [workflowAction, setWorkflowAction] = useState<{
     type: "approve" | "reject" | "pay" | null;
     transactionId: string | null;
-  }>({ type: null, transactionId: null });
+    transaction?: ClientTransaction | null;
+  }>({ type: null, transactionId: null, transaction: null });
 
   // ✅ Update specific transaction in cache (surgical update - only 1 card re-renders)
   const updateTransactionInCache = useCallback(
@@ -102,37 +111,34 @@ export function WorkflowProvider({
 
   // Workflow action handlers (memoized to ensure stable references)
   const handleApprove = useCallback(
-    (transactionId: string) => {
+    (transactionId: string, transaction?: ClientTransaction) => {
       if (!permissions.canApproveTransaction("pending")) {
         setError("คุณไม่มีสิทธิ์อนุมัติรายการนี้");
         return;
       }
-      setWorkflowAction({ type: "approve", transactionId });
-      console.log("🔵 Opening approval modal for:", transactionId);
+      setWorkflowAction({ type: "approve", transactionId, transaction });
     },
     [permissions, setError],
   );
 
   const handleReject = useCallback(
-    (transactionId: string) => {
+    (transactionId: string, transaction?: ClientTransaction) => {
       if (!permissions.canRejectTransaction("pending")) {
         setError("คุณไม่มีสิทธิ์ปฏิเสธรายการนี้");
         return;
       }
-      setWorkflowAction({ type: "reject", transactionId });
-      console.log("🔴 Opening rejection modal for:", transactionId);
+      setWorkflowAction({ type: "reject", transactionId, transaction });
     },
     [permissions, setError],
   );
 
   const handlePay = useCallback(
-    (transactionId: string) => {
+    (transactionId: string, transaction?: ClientTransaction) => {
       if (!permissions.canPayTransaction("approved")) {
         setError("คุณไม่มีสิทธิ์ทำการชำระเงินรายการนี้");
         return;
       }
-      setWorkflowAction({ type: "pay", transactionId });
-      console.log("💚 Opening payment modal for:", transactionId);
+      setWorkflowAction({ type: "pay", transactionId, transaction });
     },
     [permissions, setError],
   );
@@ -180,6 +186,7 @@ export function WorkflowProvider({
       <ApprovalModal
         isOpen={workflowAction.type === "approve"}
         transactionId={workflowAction.transactionId || ""}
+        transaction={workflowAction.transaction}
         onClose={() => setWorkflowAction({ type: null, transactionId: null })}
         onSuccess={() => handleActionSuccess("อนุมัติ")}
         onError={(error) => handleActionError("อนุมัติ", error)}
@@ -190,6 +197,7 @@ export function WorkflowProvider({
       <RejectionModal
         isOpen={workflowAction.type === "reject"}
         transactionId={workflowAction.transactionId || ""}
+        transaction={workflowAction.transaction}
         onClose={() => setWorkflowAction({ type: null, transactionId: null })}
         onSuccess={() => handleActionSuccess("ปฏิเสธ")}
         onError={(error) => handleActionError("ปฏิเสธ", error)}
@@ -200,6 +208,7 @@ export function WorkflowProvider({
       <PaymentModal
         isOpen={workflowAction.type === "pay"}
         transactionId={workflowAction.transactionId || ""}
+        transaction={workflowAction.transaction}
         onClose={() => setWorkflowAction({ type: null, transactionId: null })}
         onSuccess={() => handleActionSuccess("ชำระแล้ว")}
         onError={(error) => handleActionError("ชำระแล้ว", error)}

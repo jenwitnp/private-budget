@@ -19,7 +19,7 @@ export function TransactionDetailModal({
     data: transaction,
     isLoading,
     error,
-  } = useTransactionDetail(transactionId);
+  } = useTransactionDetail(isOpen ? transactionId : null);
 
   if (!isOpen) return null;
 

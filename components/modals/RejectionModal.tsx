@@ -10,15 +10,16 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useSession } from "next-auth/react";
 import type { QueryClient } from "@tanstack/react-query";
+import type { ClientTransaction } from "@/server/transactions.server";
 import { Modal } from "@/components/ui/Modal";
 import { Textarea } from "@/components/form/Textarea";
 import { TransactionDetailContent } from "@/components/TransactionDetailContent";
-import { useTransactionDetail } from "@/hooks/useTransactionDetail";
 import { rejectTransactionAction } from "@/actions/workflow";
 
 interface RejectionModalProps {
   isOpen: boolean;
   transactionId: string;
+  transaction?: ClientTransaction | null; // ✅ Accept pre-fetched transaction
   onClose: () => void;
   onSuccess?: () => void;
   onError?: (error: string) => void;
@@ -37,6 +38,7 @@ interface RejectionFormData {
 export function RejectionModal({
   isOpen,
   transactionId,
+  transaction, // ✅ Use pre-fetched transaction
   onClose,
   onSuccess,
   onError,
@@ -44,11 +46,6 @@ export function RejectionModal({
   queryClient,
 }: RejectionModalProps) {
   const { data: session } = useSession();
-  const {
-    data: transaction,
-    isLoading: transactionLoading,
-    error: transactionError,
-  } = useTransactionDetail(isOpen ? transactionId : null);
   const {
     register,
     handleSubmit,
@@ -100,7 +97,7 @@ export function RejectionModal({
       isOpen={isOpen}
       onClose={onClose}
       title="ปฏิเสธรายการ"
-      isLoading={isLoading || transactionLoading}
+      isLoading={isLoading}
       size="lg"
     >
       <div className="max-h-[85vh] overflow-y-auto">
@@ -108,9 +105,9 @@ export function RejectionModal({
         {transaction && (
           <>
             <TransactionDetailContent
-              transaction={transaction}
-              isLoading={transactionLoading}
-              error={transactionError as Error | null}
+              transaction={transaction as any}
+              isLoading={false}
+              error={null}
             />
 
             {/* Divider */}

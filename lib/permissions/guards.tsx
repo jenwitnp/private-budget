@@ -97,7 +97,6 @@ export function ActionGuard({
   if (action === "view" && userId && transactionUserId) {
     canPerform = permissions.canViewTransaction(transactionUserId);
   } else if (action === "approve" && status) {
-    console.log("approve logic !");
     canPerform = permissions.canApproveTransaction(status);
   } else if (action === "reject" && status) {
     canPerform = permissions.canRejectTransaction(status);

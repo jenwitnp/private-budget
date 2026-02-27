@@ -76,7 +76,7 @@ function _TransactionCard({ transaction: tx }: TransactionCardProps) {
     logAction("approve");
     setOptimisticStatus("approved");
     setLoadingAction("approve");
-    handleApprove(tx.id);
+    handleApprove(tx.id, tx as any);
   };
 
   // Handle reject with optimistic update
@@ -84,7 +84,7 @@ function _TransactionCard({ transaction: tx }: TransactionCardProps) {
     logAction("reject");
     setOptimisticStatus("rejected");
     setLoadingAction("reject");
-    handleReject(tx.id);
+    handleReject(tx.id, tx as any);
   };
 
   // Handle pay with optimistic update
@@ -92,7 +92,7 @@ function _TransactionCard({ transaction: tx }: TransactionCardProps) {
     logAction("pay");
     setOptimisticStatus("paid");
     setLoadingAction("pay");
-    handlePay(tx.id);
+    handlePay(tx.id, tx as any);
   };
 
   // Callback to revert optimistic update on error
@@ -108,7 +108,7 @@ function _TransactionCard({ transaction: tx }: TransactionCardProps) {
 
   // Status to badge color mapping
   const statusColorMap: Record<string, { bg: string; text: string }> = {
-    disabled: { bg: "bg-state-50", text: "text-state-400" },
+    disabled: { bg: "bg-slate-100", text: "text-state-400" },
     pending: { bg: "bg-amber-100", text: "text-amber-400" },
     approved: { bg: "bg-purple-100", text: "text-purple-400" },
     rejected: { bg: "bg-red-100", text: "text-red-400" },
