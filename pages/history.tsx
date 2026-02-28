@@ -13,6 +13,7 @@ import { ToastContainer } from "@/components/ToastContainer";
 import { usePermissions } from "@/lib/permissions/hooks";
 import { getTransactionsAction } from "@/actions/transactions";
 import { useToast } from "@/hooks/useToast";
+import { useTransactionStats } from "@/hooks/useTransactionStats";
 import { WorkflowProvider } from "@/lib/context/WorkflowContext";
 import {
   parseTransactionFiltersFromQuery,
@@ -42,6 +43,7 @@ function _HistoryPageContent({
   const { toasts, removeToast } = useToast();
 
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -78,6 +80,56 @@ function _HistoryPageContent({
     }
   }, [router.isReady, router.query]);
 
+  // Helper: Build URL from filters
+  const buildFilterUrl = useCallback((updatedFilters: typeof filters) => {
+    const filterObject = {
+      searchTerm: updatedFilters.searchTerm,
+      statusFilter: updatedFilters.statusFilter,
+      dateStart: updatedFilters.dateStart,
+      dateEnd: updatedFilters.dateEnd,
+      categoryId: updatedFilters.categoryId,
+      districtId: updatedFilters.districtId,
+      subDistrictId: updatedFilters.subDistrictId,
+    };
+
+    const params = new URLSearchParams();
+    params.append("filters", JSON.stringify(filterObject));
+
+    return `/history?${params.toString()}`;
+  }, []);
+
+  // Handle status filter changes - update both state and URL
+  const handleStatusFilterClick = useCallback(
+    (newStatus: string) => {
+      const newFilters = { ...filters, statusFilter: newStatus };
+      setFilters(newFilters);
+      router.push(buildFilterUrl(newFilters));
+    },
+    [filters, router, buildFilterUrl],
+  );
+
+  // Get status label in Thai
+  const getStatusLabel = (status: string): string => {
+    const statusMap: Record<string, string> = {
+      all: "ทั้งหมด",
+      pending: "รออนุมัติ",
+      approved: "อนุมัติแล้ว",
+      rejected: "ปฎิเสธ",
+      paid: "ชำระแล้ว",
+    };
+    return statusMap[status] || "ทั้งหมด";
+  };
+
+  // Fetch transaction stats for all statuses
+  const { data: stats, isLoading: statsLoading } = useTransactionStats({
+    search: filters.searchTerm,
+    categoryId: filters.categoryId,
+    districtId: filters.districtId,
+    subDistrictId: filters.subDistrictId,
+    dateStart: filters.dateStart,
+    dateEnd: filters.dateEnd,
+  });
+
   // Infinite query for transactions
   const {
     data,
@@ -111,6 +163,33 @@ function _HistoryPageContent({
         sortBy: "newest" as const,
         pageSize: 6,
       };
+
+      // 🐛 DEBUG: Log client-side filter transformation with timezone conversion
+      console.group("📤 [CLIENT] Filter Transformation - Timezone Aware");
+      console.log(
+        "%c🇹🇭 Input (Thai Local Time UTC+7):",
+        "color: #f59e0b; font-weight: bold; font-size: 12px;",
+        {
+          dateStart: filters.dateStart || "N/A",
+          dateEnd: filters.dateEnd || "N/A",
+          statusFilter: filters.statusFilter,
+        },
+      );
+      console.log(
+        "%c🌐 Converted to UTC (Database Format):",
+        "color: #8b5cf6; font-weight: bold; font-size: 12px;",
+        {
+          "GTE (Start)": Object.values(gte)[0] || "N/A",
+          "LTE (End)": Object.values(lte)[0] || "N/A",
+          note: "Thai date -7 hours = UTC (local midnight = UTC previous 17:00)",
+        },
+      );
+      console.log(
+        "  API Filters (equality):",
+        Object.keys(apiFilters).length > 0 ? apiFilters : "{}",
+      );
+      console.log("  Full Request:", requestPayload);
+      console.groupEnd();
 
       return getTransactionsAction(requestPayload);
     },
@@ -174,18 +253,104 @@ function _HistoryPageContent({
 
       {/* Header with Action Button */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-slate-800">ประวัติการถอน</h1>
-        <button
-          onClick={() => setIsWithdrawModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors shadow-sm"
-        >
-          <i className="fa-solid fa-arrow-right-from-bracket"></i>
-          ถอนเงิน
-        </button>
+        <h1 className="text-2xl font-bold text-slate-800">
+          {getStatusLabel(filters.statusFilter)}{" "}
+          {data?.pages[0]?.total ? `${data.pages[0].total} รายการ` : ""}
+        </h1>
+        <div className="flex items-center gap-2">
+          {/* Filter Toggle Button - Mobile Only */}
+          <button
+            onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
+            className={`md:hidden px-4 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+              isFiltersExpanded
+                ? "bg-emerald-600 text-white shadow-md"
+                : "bg-slate-200 text-slate-700 hover:bg-slate-300"
+            }`}
+          >
+            <i
+              className={`fas fa-${isFiltersExpanded ? "times" : "sliders-h"}`}
+            ></i>
+            <span className="text-sm">
+              {isFiltersExpanded ? "ปิด" : "ตัวกรอง"}
+            </span>
+          </button>
+          {/* Withdraw Button */}
+          <button
+            onClick={() => setIsWithdrawModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors shadow-sm"
+          >
+            <i className="fa-solid fa-arrow-right-from-bracket"></i>
+            เบิกเงิน
+          </button>
+        </div>
       </div>
 
+      {/* Status Stats Grid */}
+      {stats && (
+        <div className="grid grid-cols-4 md:grid-cols-4 gap-3 md:gap-4 mb-6">
+          {/* Pending */}
+          <Card
+            className="text-center py-4 md:py-6 hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => handleStatusFilterClick("pending")}
+          >
+            <p className="text-xs md:text-sm text-slate-600 font-medium mb-1">
+              รออนุมัติ
+            </p>
+            <p className="text-2xl md:text-3xl font-bold text-amber-600">
+              {stats.pending}
+            </p>
+            <p className="text-xs text-slate-500 mt-1">รายการ</p>
+          </Card>
+
+          {/* Approved */}
+          <Card
+            className="text-center py-4 md:py-6 hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => handleStatusFilterClick("approved")}
+          >
+            <p className="text-xs md:text-sm text-slate-600 font-medium mb-1">
+              อนุมัติแล้ว
+            </p>
+            <p className="text-2xl md:text-3xl font-bold text-purple-600">
+              {stats.approved}
+            </p>
+            <p className="text-xs text-slate-500 mt-1">รายการ</p>
+          </Card>
+
+          {/* Rejected */}
+          <Card
+            className="text-center py-4 md:py-6 hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => handleStatusFilterClick("rejected")}
+          >
+            <p className="text-xs md:text-sm text-slate-600 font-medium mb-1">
+              ปฎิเสธ
+            </p>
+            <p className="text-2xl md:text-3xl font-bold text-red-600">
+              {stats.rejected}
+            </p>
+            <p className="text-xs text-slate-500 mt-1">รายการ</p>
+          </Card>
+
+          {/* Paid */}
+          <Card
+            className="text-center py-4 md:py-6 hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => handleStatusFilterClick("paid")}
+          >
+            <p className="text-xs md:text-sm text-slate-600 font-medium mb-1">
+              ชำระแล้ว
+            </p>
+            <p className="text-2xl md:text-3xl font-bold text-emerald-600">
+              {stats.paid}
+            </p>
+            <p className="text-xs text-slate-500 mt-1">รายการ</p>
+          </Card>
+        </div>
+      )}
+
       {/* Filter Section */}
-      <TransactionFilters />
+      <TransactionFilters
+        isFiltersExpanded={isFiltersExpanded}
+        setIsFiltersExpanded={setIsFiltersExpanded}
+      />
 
       {/* Loading State */}
       {isLoading && (

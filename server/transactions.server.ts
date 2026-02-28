@@ -252,6 +252,17 @@ export async function getTransactions(
       gte = {},
     } = request;
 
+    // 🐛 DEBUG: Log received query parameters
+    console.group("📥 [SERVER] Received transaction query");
+    console.log("  User:", request.user);
+    console.log("  Filters (equality):", filters);
+    console.log("  GTE (>=):", gte);
+    console.log("  LTE (<=):", lte);
+    console.log("  Search:", search);
+    console.log("  Page:", pageParam, "Page Size:", pageSize);
+    console.log("  Sort By:", sortBy);
+    console.groupEnd();
+
     // Determine sort column and direction
     let sortColumn = "transaction_date";
     let sortOrder: "asc" | "desc" = "desc";
@@ -297,6 +308,18 @@ export async function getTransactions(
     const data = result.data as TransactionDetailWithCategories[];
     const count = result.count || 0;
 
+    // 🐛 DEBUG: Log query results
+    console.group("✅ [SERVER] Query Results");
+    console.log(`  Total found: ${count}, Returned: ${data.length}`);
+    console.log(
+      `  Pagination: page ${pageParam} of ${Math.ceil(count / pageSize)}`,
+    );
+    data.forEach((tx, idx) => {
+      console.log(
+        `  [${idx + 1}] ${tx.transaction_number} - ${tx.user_full_name} - ${tx.created_at}`,
+      );
+    });
+    console.groupEnd();
     // ✅ SINGLE SOURCE OF TRUTH: All formatting happens here on the server
     // Transform database format to component format
     const formattedData = data.map((tx) => {
@@ -308,7 +331,9 @@ export async function getTransactions(
           : tx.amount;
 
       // Helper to clean empty/whitespace strings
-      const cleanName = (name: string | null | undefined): string | undefined => {
+      const cleanName = (
+        name: string | null | undefined,
+      ): string | undefined => {
         const trimmed = name?.trim();
         return trimmed ? trimmed : undefined;
       };

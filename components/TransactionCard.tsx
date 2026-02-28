@@ -239,9 +239,18 @@ function _TransactionCard({ transaction: tx }: TransactionCardProps) {
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-slate-500 font-medium mb-1.5">วันที่</p>
+            <p className="text-xs text-slate-500 font-medium mb-1.5">
+              วันที่เวลา
+            </p>
             <p className="text-lg md:text-xl font-bold text-slate-700 font-num">
-              {new Date(tx.date).toLocaleDateString("th-TH")}
+              {new Date(tx.date).toLocaleString("th-TH", {
+                year: "numeric",
+                month: "numeric",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+              })}
             </p>
           </div>
         </div>

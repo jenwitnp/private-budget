@@ -173,6 +173,7 @@ export async function fetchData<T = any>(
     // Apply lte (less than or equal) for multiple columns
     if (lte && typeof lte === "object") {
       Object.entries(lte).forEach(([column, value]) => {
+        console.log(`  🔽 LTE filter: ${column} <= ${value}`);
         query = query.lte(column, value);
       });
     }
@@ -180,6 +181,7 @@ export async function fetchData<T = any>(
     // Apply gte (greater than or equal) for multiple columns
     if (gte && typeof gte === "object") {
       Object.entries(gte).forEach(([column, value]) => {
+        console.log(`  🔼 GTE filter: ${column} >= ${value}`);
         query = query.gte(column, value);
       });
     }
