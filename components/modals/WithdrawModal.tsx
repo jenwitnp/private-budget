@@ -134,6 +134,10 @@ export function WithdrawModal({
       );
 
       console.log("✅ Withdrawal action result:", result);
+
+      // Call parent onSubmit callback to trigger page refresh
+      await onSubmit(formDataWithImages);
+
       handleClose();
     } catch (err) {
       const errorMessage =

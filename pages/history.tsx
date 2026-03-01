@@ -7,6 +7,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/Card";
 import { Input, Select } from "@/components/ui/Forms";
 import { TransactionFilters } from "@/components/TransactionFilters";
+import { TransactionStatsGrid } from "@/components/TransactionStatsGrid";
 import { WithdrawModal } from "@/components/modals/WithdrawModal";
 import { TransactionCard } from "@/components/TransactionCard";
 import { ToastContainer } from "@/components/ToastContainer";
@@ -41,6 +42,7 @@ function _HistoryPageContent({
   const { data: session } = useSession();
   const router = useRouter();
   const { toasts, removeToast } = useToast();
+  const queryClient = useQueryClient();
 
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
@@ -235,11 +237,21 @@ function _HistoryPageContent({
 
   const handleWithdrawSubmit = async (data: WithdrawFormData) => {
     try {
-      console.log("Withdraw data:", data);
-      // TODO: Call API to create transaction - already handled by actions/withdrawal.ts
+      console.log("✅ Transaction created successfully - invalidating cache");
       setIsWithdrawModalOpen(false);
-      // Refresh transactions
-      window.location.reload();
+
+      // Invalidate transaction queries to trigger refetch
+      // This will show the new transaction card without full page reload
+      await queryClient.invalidateQueries({
+        queryKey: ["transactions"],
+        exact: false,
+      });
+
+      // Also invalidate stats to update the counter
+      await queryClient.invalidateQueries({
+        queryKey: ["transaction-stats"],
+        exact: false,
+      });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Error";
       setError(errorMessage);
@@ -287,63 +299,10 @@ function _HistoryPageContent({
 
       {/* Status Stats Grid */}
       {stats && (
-        <div className="grid grid-cols-4 md:grid-cols-4 gap-3 md:gap-4 mb-6">
-          {/* Pending */}
-          <Card
-            className="text-center py-4 md:py-6 hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => handleStatusFilterClick("pending")}
-          >
-            <p className="text-xs md:text-sm text-slate-600 font-medium mb-1">
-              รออนุมัติ
-            </p>
-            <p className="text-2xl md:text-3xl font-bold text-amber-600">
-              {stats.pending}
-            </p>
-            <p className="text-xs text-slate-500 mt-1">รายการ</p>
-          </Card>
-
-          {/* Approved */}
-          <Card
-            className="text-center py-4 md:py-6 hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => handleStatusFilterClick("approved")}
-          >
-            <p className="text-xs md:text-sm text-slate-600 font-medium mb-1">
-              อนุมัติแล้ว
-            </p>
-            <p className="text-2xl md:text-3xl font-bold text-purple-600">
-              {stats.approved}
-            </p>
-            <p className="text-xs text-slate-500 mt-1">รายการ</p>
-          </Card>
-
-          {/* Rejected */}
-          <Card
-            className="text-center py-4 md:py-6 hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => handleStatusFilterClick("rejected")}
-          >
-            <p className="text-xs md:text-sm text-slate-600 font-medium mb-1">
-              ปฎิเสธ
-            </p>
-            <p className="text-2xl md:text-3xl font-bold text-red-600">
-              {stats.rejected}
-            </p>
-            <p className="text-xs text-slate-500 mt-1">รายการ</p>
-          </Card>
-
-          {/* Paid */}
-          <Card
-            className="text-center py-4 md:py-6 hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => handleStatusFilterClick("paid")}
-          >
-            <p className="text-xs md:text-sm text-slate-600 font-medium mb-1">
-              ชำระแล้ว
-            </p>
-            <p className="text-2xl md:text-3xl font-bold text-emerald-600">
-              {stats.paid}
-            </p>
-            <p className="text-xs text-slate-500 mt-1">รายการ</p>
-          </Card>
-        </div>
+        <TransactionStatsGrid
+          stats={stats}
+          onStatusClick={handleStatusFilterClick}
+        />
       )}
 
       {/* Filter Section */}
