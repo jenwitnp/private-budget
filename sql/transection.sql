@@ -37,14 +37,28 @@ create table public.transactions (
   paid_at timestamp with time zone null,
   category_id uuid null,
   payment_method character varying(50) null default 'transfer'::character varying,
+  thumbnail character varying null,
   constraint transactions_pkey primary key (id),
   constraint transactions_transaction_number_key unique (transaction_number),
   constraint transactions_districts_id_fkey foreign KEY (districts_id) references districts (id),
   constraint transactions_paid_by_fkey foreign KEY (paid_by) references users (id),
-  constraint transactions_category_id_fkey foreign KEY (category_id) references categories (id) on delete set null,
   constraint transactions_rejected_by_fkey foreign KEY (rejected_by) references users (id),
   constraint transactions_sub_districts_id_fkey foreign KEY (sub_districts_id) references sub_districts (id),
-  constraint transactions_approved_by_fkey foreign KEY (approved_by) references users (id)
+  constraint transactions_approved_by_fkey foreign KEY (approved_by) references users (id),
+  constraint transactions_category_id_fkey foreign KEY (category_id) references categories (id) on delete set null,
+  constraint transactions_payment_method_check check (
+    (
+      (payment_method)::text = any (
+        (
+          array[
+            'cash'::character varying,
+            'transfer'::character varying,
+            null::character varying
+          ]
+        )::text[]
+      )
+    )
+  )
 ) TABLESPACE pg_default;
 
 create index IF not exists idx_transactions_user_id on public.transactions using btree (user_id) TABLESPACE pg_default;

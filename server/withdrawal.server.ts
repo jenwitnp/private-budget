@@ -1,6 +1,5 @@
-"use server";
-
 import { supabase } from "@/lib/supabaseClient";
+import { createStorageService } from "@/service/storage";
 /**
  * Server-side business logic for withdrawal processing
  * This file contains all core server logic for handling withdrawal requests
@@ -68,7 +67,6 @@ export async function processWithdrawalOnServer(
 
     // If there are validation errors, return them
     if (Object.keys(errors).length > 0) {
-      console.error("❌ VALIDATION FAILED:", errors);
       return {
         success: false,
         message: "ข้อมูลไม่ถูกต้อง",
@@ -76,22 +74,10 @@ export async function processWithdrawalOnServer(
       };
     }
 
-    console.log("✅ VALIDATION PASSED");
-
     // Simulate transaction ID generation
     const txTimestamp = Date.now();
     const random = Math.floor(Math.random() * 10000);
     const transactionId = `TRX${txTimestamp}${random}`;
-
-    console.log("🎫 TRANSACTION CREATED:", {
-      id: transactionId,
-      bankAccount: formData.bankAccountId || "N/A",
-      itemName: formData.itemName,
-      category: formData.category,
-      payment_method: formData.payment_method,
-      amount: `฿${finalNumAmount.toLocaleString("th-TH")}`,
-      images: formData.images?.length || 0,
-    });
 
     return {
       success: true,
@@ -102,7 +88,6 @@ export async function processWithdrawalOnServer(
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error occurred";
-    console.error("❌ WITHDRAWAL ERROR:", errorMessage);
 
     return {
       success: false,
@@ -174,7 +159,6 @@ export function prepareTransactionDataForSupabase(
         districtId = null;
       }
     } catch (e) {
-      console.warn("Invalid district_id:", formData.district_id);
       districtId = null;
     }
   }
@@ -186,7 +170,6 @@ export function prepareTransactionDataForSupabase(
         subDistrictId = null;
       }
     } catch (e) {
-      console.warn("Invalid sub_district_id:", formData.sub_district_id);
       subDistrictId = null;
     }
   }
@@ -215,97 +198,119 @@ export function prepareTransactionDataForSupabase(
 }
 
 /**
- * TODO: Supabase client function to insert transaction
- * This will be implemented when Supabase client is configured
+ * Supabase client function to insert transaction and images
+ * Creates transaction record, inserts images to images table, and sets thumbnail
  */
 export async function createTransactionInSupabase(
   transactionData: Record<string, any>,
+  imageMetadata: Array<{
+    filename: string;
+    size: number;
+    width: number;
+    height: number;
+    url?: string;
+  }> = [],
+  userId?: string,
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
-    console.log("");
-    console.log("📤 [SUPABASE] Attempting to insert transaction...");
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    console.log("📊 Transaction Data:", transactionData);
-    console.log("");
-
-    // Cast to proper Supabase type to avoid TypeScript errors
-    const { data, error } = await supabase
+    // Step 1: Insert transaction
+    const { data: transactionResult, error: transactionError } = await supabase
       .from("transactions")
       .insert([transactionData as any])
       .select("id");
 
-    if (error) {
-      console.error("❌ [SUPABASE] Insert failed!");
-      console.error("Error Message:", error.message);
-      console.error("Error Code:", error.code);
-      console.error(
-        "╚════════════════════════════════════════════════════════╝\n",
-      );
-      return { success: false, error: error.message };
+    if (transactionError) {
+      return { success: false, error: transactionError.message };
     }
 
-    console.log("✅ [SUPABASE] Transaction inserted successfully!");
-    console.log("📌 Inserted ID:", data?.[0]?.id);
-    console.log("📌 Full Response:", data);
-    console.log("╚════════════════════════════════════════════════════════╝\n");
+    const transactionId = transactionResult?.[0]?.id;
+    if (!transactionId) {
+      return { success: false, error: "Failed to create transaction" };
+    }
 
-    return { success: true, id: data?.[0]?.id };
+    console.log(`✅ [DB] Transaction created: ${transactionId}`);
+
+    // Step 2: Insert images and collect URLs
+    let thumbnailUrl: string | null = null;
+
+    if (imageMetadata.length > 0) {
+      console.log("");
+      console.log("📸 [DB] Inserting images into database:");
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+      console.log(`Received ${imageMetadata.length} images:`);
+
+      imageMetadata.forEach((img, idx) => {
+        console.log(`\n[${idx + 1}] Image metadata:`);
+        console.log(`  filename: ${img.filename}`);
+        console.log(`  size: ${img.size}`);
+        console.log(`  width: ${img.width}`);
+        console.log(`  height: ${img.height}`);
+        console.log(`  url: ${img.url || "❌ NULL/UNDEFINED"}`);
+      });
+
+      const imageRecords = imageMetadata.map((img, index) => ({
+        transaction_id: transactionId,
+        url: img.url || null,
+        cloud_url: img.url || null,
+        filename: img.filename,
+        file_size: img.size,
+        mime_type: "image/jpeg",
+        width: img.width,
+        height: img.height,
+        storage_path: img.url ? `withdrawal-images/${img.filename}` : null,
+        uploaded_by: userId,
+        upload_status: "completed",
+      }));
+
+      const { error: imagesError } = await (supabase as any)
+        .from("images")
+        .insert(imageRecords as any[]);
+
+      if (imagesError) {
+        console.error("[DB] Failed to insert images:", imagesError.message);
+        return { success: false, error: imagesError.message };
+      }
+
+      // Set thumbnail to first image URL
+      if (imageMetadata[0]?.url) {
+        thumbnailUrl = imageMetadata[0].url;
+      }
+
+      // Log inserted images
+      imageMetadata.forEach((img, index) => {
+        console.log(`  Image ${index + 1}:`);
+        console.log(`    Filename: ${img.filename}`);
+        console.log(`    Size: ${(img.size / 1024).toFixed(2)} KB`);
+        console.log(`    Dimensions: ${img.width}x${img.height}`);
+        console.log(`    URL: ${img.url || "❌ NOT SET"}`);
+      });
+      console.log(`Total images inserted: ${imageMetadata.length}`);
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+      console.log("");
+
+      // Step 3: Update transaction thumbnail
+      if (thumbnailUrl) {
+        const { error: updateError } = await supabase
+          .from("transactions")
+          .update({ thumbnail: thumbnailUrl } as any)
+          .eq("id", transactionId);
+
+        if (updateError) {
+          console.error(
+            "[DB] Failed to update thumbnail:",
+            updateError.message,
+          );
+          // Don't fail the transaction if thumbnail update fails
+        } else {
+          console.log(`✅ [DB] Transaction thumbnail updated: ${thumbnailUrl}`);
+        }
+      }
+    }
+
+    return { success: true, id: transactionId };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
-    console.error("");
-    console.error("❌ [SUPABASE] Error inserting transaction!");
-    console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    console.error("Error Type:", typeof err);
-    console.error("Error Message:", errorMessage);
-    console.error("Full Error:", err);
-    console.error(
-      "╚════════════════════════════════════════════════════════╝\n",
-    );
-    return { success: false, error: errorMessage };
-  }
-}
-
-/**
- * TODO: Upload images to Supabase Storage
- */
-export async function uploadTransactionImagesToSupabase(
-  images: File[],
-  transactionNumber: string,
-): Promise<{ success: boolean; urls?: string[]; error?: string }> {
-  try {
-    // TODO: Replace with actual Supabase storage upload
-    // const uploadedUrls: string[] = [];
-    //
-    // for (const image of images) {
-    //   const filePath = `transactions/${transactionNumber}/${image.name}`;
-    //   const { error } = await supabase.storage
-    //     .from("withdrawal-images")
-    //     .upload(filePath, image);
-    //
-    //   if (error) {
-    //     return { success: false, error: error.message };
-    //   }
-    //
-    //   uploadedUrls.push(filePath);
-    // }
-    //
-    // return { success: true, urls: uploadedUrls };
-
-    console.log(
-      "📤 [SUPABASE] Would upload",
-      images.length,
-      "images for transaction:",
-      transactionNumber,
-    );
-    return {
-      success: true,
-      urls: images.map(
-        (img) => `transactions/${transactionNumber}/${img.name}`,
-      ),
-    };
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : "Unknown error";
-    console.error("📤 [SUPABASE] Error uploading images:", errorMessage);
+    console.error("[DB] Error in createTransactionInSupabase:", errorMessage);
     return { success: false, error: errorMessage };
   }
 }

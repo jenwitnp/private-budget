@@ -27,6 +27,7 @@ export interface Transaction {
   paymentMethod?: string; // 'cash' or 'transfer'
   categoryName?: string; // Category name
   districtName?: string; // District name
+  thumbnail?: string | null; // First image URL if exists
 }
 
 interface TransactionCardProps {
@@ -192,11 +193,19 @@ function _TransactionCard({ transaction: tx }: TransactionCardProps) {
           <p className="text-sm md:text-base font-semibold text-slate-800 mb-1">
             {tx.itemName}
           </p>
-          <p className="text-xs text-slate-500 font-num font-medium">
-            {tx.paymentMethod === "cash" ? "เงินสด" : "โอน"} - {tx.categoryName}{" "}
-            {tx.districtName ? `- ${tx.districtName}` : ""}{" "}
-            {tx.districtName ? `- ${tx.districtName}` : ""}
-          </p>
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <p className="text-xs text-slate-500 font-num font-medium">
+              {tx.paymentMethod === "cash" ? "เงินสด" : "โอน"} -{" "}
+              {tx.categoryName} {tx.districtName ? `- ${tx.districtName}` : ""}{" "}
+              {tx.districtName ? `- ${tx.districtName}` : ""}
+            </p>
+            {tx.thumbnail && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 whitespace-nowrap">
+                <i className="fas fa-file-pdf"></i>
+                มีภาพประกอบ
+              </span>
+            )}
+          </div>
         </div>
         <div className="mb-4 flex justify-between pb-4 border-b border-slate-100">
           <div>

@@ -3,6 +3,9 @@
 import { StatusBadge } from "@/components/StatusBadge";
 import type { Transaction } from "@/components/TransactionCard";
 import type { TransactionDetailWithCategory } from "@/lib/database.views";
+import type { TransactionImage } from "@/server/transactions.server";
+import { useState, useEffect } from "react";
+import { getTransactionImages } from "@/server/transactions.server";
 
 interface TransactionDetailContentProps {
   transaction: TransactionDetailWithCategory;
@@ -15,6 +18,50 @@ export function TransactionDetailContent({
   isLoading = false,
   error = null,
 }: TransactionDetailContentProps) {
+  const [images, setImages] = useState<TransactionImage[]>([]);
+  const [imagesLoading, setImagesLoading] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(
+    null,
+  );
+
+  // Fetch images for this transaction
+  useEffect(() => {
+    if (!transaction?.id) return;
+
+    const loadImages = async () => {
+      setImagesLoading(true);
+      try {
+        const result = await getTransactionImages(transaction.id);
+        console.group("📸 [COMPONENT] Image Loading");
+        console.log("Transaction ID:", transaction.id);
+        console.log("Result:", result);
+        if (result.data?.length) {
+          console.log(`Loaded ${result.data.length} images`);
+          result.data.forEach((img, idx) => {
+            console.log(`[${idx + 1}] ${img.filename}`);
+            console.log(`  URL: ${img.url}`);
+            console.log(`  Cloud URL: ${img.cloud_url}`);
+            console.log(`  Storage Path: ${img.storage_path}`);
+          });
+        }
+        console.groupEnd();
+
+        if (result.success && result.data) {
+          setImages(result.data);
+          // Auto-select first image if available
+          if (result.data.length > 0) {
+            setSelectedImageIndex(0);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load images:", err);
+      } finally {
+        setImagesLoading(false);
+      }
+    };
+
+    loadImages();
+  }, [transaction?.id]);
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -85,6 +132,87 @@ export function TransactionDetailContent({
         <div className="border-b border-slate-200 pb-5">
           <p className="text-xs text-slate-500 font-medium mb-2">ชื่อรายการ</p>
           <p className="text-sm text-slate-800">{transaction.item_name}</p>
+        </div>
+      )}
+
+      {/* Images Gallery Section */}
+      {images.length > 0 && (
+        <div className="border-b border-slate-200 pb-5">
+          <p className="text-xs text-slate-500 font-medium mb-3">
+            <i className="fas fa-images mr-1.5"></i>รูปภาพที่แนบมา (
+            {images.length})
+          </p>
+
+          {/* Main Image Display */}
+          {selectedImageIndex !== null && images[selectedImageIndex] && (
+            <div className="mb-4 rounded-lg overflow-hidden bg-slate-100">
+              <div className="relative w-full h-64 flex items-center justify-center">
+                <img
+                  src={images[selectedImageIndex].url || ""}
+                  alt={`Transaction image ${selectedImageIndex + 1}`}
+                  className="max-w-full max-h-full object-contain"
+                  onError={(e) => {
+                    (e.currentTarget as any).src =
+                      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'%3E%3Crect fill='%23e2e8f0' width='400' height='400'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' font-size='16' fill='%2394a3b8'%3EUnable to load image%3C/text%3E%3C/svg%3E";
+                  }}
+                />
+              </div>
+              {images[selectedImageIndex].width &&
+                images[selectedImageIndex].height && (
+                  <div className="px-3 py-2 bg-slate-50 text-xs text-slate-600 text-center">
+                    {images[selectedImageIndex].width} ×{" "}
+                    {images[selectedImageIndex].height} px
+                    {images[selectedImageIndex].file_size && (
+                      <>
+                        {" • "}
+                        {(
+                          (images[selectedImageIndex].file_size || 0) / 1024
+                        ).toFixed(2)}{" "}
+                        KB
+                      </>
+                    )}
+                  </div>
+                )}
+            </div>
+          )}
+
+          {/* Thumbnail Strip */}
+          {images.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {images.map((image, index) => (
+                <button
+                  key={image.id}
+                  onClick={() => setSelectedImageIndex(index)}
+                  className={`relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                    selectedImageIndex === index
+                      ? "border-emerald-500 shadow-md"
+                      : "border-slate-200 hover:border-slate-300"
+                  }`}
+                  title={`Image ${index + 1}`}
+                >
+                  <img
+                    src={image.url || ""}
+                    alt={`Thumbnail ${index + 1}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as any).src =
+                        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'%3E%3Crect fill='%23e2e8f0' width='400' height='400'/%3E%3C/svg%3E";
+                    }}
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Image Information */}
+          {selectedImageIndex !== null && images[selectedImageIndex] && (
+            <div className="mt-3 pt-3 border-t border-slate-200 text-xs text-slate-600 space-y-1">
+              <p>
+                <span className="font-medium">ไฟล์:</span>{" "}
+                {images[selectedImageIndex].filename}
+              </p>
+            </div>
+          )}
         </div>
       )}
 

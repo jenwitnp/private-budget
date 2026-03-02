@@ -44,6 +44,7 @@ export interface ClientTransaction {
   paymentMethod?: string;
   categoryName?: string;
   districtName?: string;
+  thumbnail?: string | null; // First image URL if exists
 }
 
 export interface TransactionWithBankDetails extends Transaction {
@@ -136,6 +137,9 @@ export interface TransactionDetailWithCategories {
   created_by_id: string | null;
   created_by_name: string | null;
 
+  // Image/Document information
+  thumbnail: string | null; // First image URL if exists
+
   // Error information
   error_code: string | null;
   error_message: string | null;
@@ -168,6 +172,71 @@ export interface GetTransactionsResponse {
   pageSize?: number;
   totalPages?: number;
   error?: string;
+}
+
+/**
+ * Transaction image from images table
+ */
+export interface TransactionImage {
+  id: string;
+  transaction_id: string;
+  url: string | null;
+  cloud_url: string | null;
+  filename: string;
+  file_size: number | null;
+  width: number | null;
+  height: number | null;
+  storage_path: string | null;
+  upload_status: string;
+  created_at: string;
+}
+
+/**
+ * Fetch images for a transaction
+ */
+export async function getTransactionImages(transactionId: string): Promise<{
+  success: boolean;
+  data?: TransactionImage[];
+  error?: string;
+}> {
+  try {
+    const { data, error } = await (supabase as any)
+      .from("images")
+      .select("*")
+      .eq("transaction_id", transactionId)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    // Log retrieved images
+    console.group("📸 [SERVER] getTransactionImages");
+    console.log("Transaction ID:", transactionId);
+    console.log(`Found ${data?.length || 0} images`);
+    if (data?.length) {
+      data.forEach((img: TransactionImage, idx: number) => {
+        console.log(`[${idx + 1}] ${img.filename}`);
+        console.log(`  ID: ${img.id}`);
+        console.log(`  URL: ${img.url}`);
+        console.log(`  Cloud URL: ${img.cloud_url}`);
+        console.log(`  Storage Path: ${img.storage_path}`);
+      });
+    }
+    console.groupEnd();
+
+    return {
+      success: true,
+      data: (data || []) as TransactionImage[],
+    };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    console.error("[SERVER] Error in getTransactionImages:", errorMessage);
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
 }
 
 /**
@@ -355,6 +424,7 @@ export async function getTransactions(
         paymentMethod: tx.payment_method || undefined,
         categoryName: tx.category_name || "N/A",
         districtName: tx.district_name || "N/A",
+        thumbnail: (tx as any).thumbnail || null,
       };
     });
 

@@ -30,6 +30,11 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# credentials and secrets
+/credentials
+*.key
+*.pem
+
 # IDE
 .idea
 .vscode

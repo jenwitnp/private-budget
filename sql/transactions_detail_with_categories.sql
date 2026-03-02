@@ -1,3 +1,5 @@
+DROP VIEW IF EXISTS public.transactions_detail_with_categories;
+
 create view public.transactions_detail_with_categories as
 select
   t.id,
@@ -76,6 +78,7 @@ select
   ) as created_by_name,
   t.fee_amount,
   t.net_amount,
+  t.thumbnail,
   t.error_code,
   t.error_message,
   t.ip_address,

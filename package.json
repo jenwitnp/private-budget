@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@google-cloud/storage": "^7.19.0",
     "@headlessui/react": "^1.7.17",
     "@heroicons/react": "^2.0.18",
     "@supabase/auth-helpers-nextjs": "^0.15.0",
@@ -28,10 +29,12 @@
     "react-dom": "^18.2.0",
     "react-dropzone": "^15.0.0",
     "react-hook-form": "^7.48.0",
-    "tailwindcss": "^4.1.18"
+    "sharp": "^0.34.5",
+    "tailwindcss": "^4.1.18",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
-    "@types/node": "^20.10.0",
+    "@types/node": "^20.19.35",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
     "eslint": "^8.55.0",

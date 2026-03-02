@@ -127,10 +127,12 @@ export function WithdrawModal({
       // Log form data for debugging
       logFormData(formDataWithImages, "Before Submission");
 
-      // Call action to process withdrawal with user ID
+      // Call server action with form data and images
+      // Server action will handle image upload, processing, and transaction creation
       const result = await handleWithdrawSubmitAction(
         formDataWithImages,
         session.user.id,
+        uploadedImages.map((img) => img.file),
       );
 
       console.log("✅ Withdrawal action result:", result);

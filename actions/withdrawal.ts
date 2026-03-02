@@ -11,16 +11,17 @@ import {
   prepareTransactionDataForSupabase,
   createTransactionInSupabase,
 } from "@/server/withdrawal.server";
-import { useSession } from "next-auth/react";
 
 /**
  * Handle withdrawal form submission
  * Main entry point for form submission from the UI
+ * Handles image upload, processing, and transaction creation
  * Note: userId should be passed from component that has access to session
  */
 export async function handleWithdrawSubmitAction(
   formData: WithdrawFormData,
   userId: string,
+  images?: File[],
 ): Promise<{
   success: boolean;
   message: string;
@@ -33,7 +34,7 @@ export async function handleWithdrawSubmitAction(
       bankAccountId: formData.bankAccountId,
       amount: formData.amount,
       description: formData.description,
-      imagesCount: formData.images?.length || 0,
+      imagesCount: images?.length || 0,
     });
 
     // Step 1: Validate userId
@@ -41,7 +42,73 @@ export async function handleWithdrawSubmitAction(
       throw new Error("User ID is required");
     }
 
-    // Step 2: Call server-side business logic validation
+    // Step 2: Process images via API if provided
+    let processedImages: Array<{
+      filename: string;
+      size: number;
+      width: number;
+      height: number;
+      url?: string;
+    }> = [];
+
+    if (images && images.length > 0) {
+      console.log("📤 [ACTION] Uploading and processing images...");
+
+      // Convert File objects to base64
+      const base64Images = await Promise.all(
+        images.map((file) => {
+          return new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        }),
+      );
+
+      // Call upload API
+      try {
+        const uploadResponse = await fetch("/api/upload", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            images: base64Images,
+          }),
+        });
+
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json();
+          throw new Error(errorData.error || "Upload failed");
+        }
+
+        const uploadData = await uploadResponse.json();
+
+        if (!uploadData.success) {
+          throw new Error(uploadData.error || "Image processing failed");
+        }
+
+        processedImages = uploadData.files || [];
+        console.log("✅ [ACTION] Images processed successfully");
+        console.log("📸 [ACTION] Processed images metadata:");
+        processedImages.forEach((img, idx) => {
+          console.log(`[${idx + 1}] ${img.filename}`);
+          console.log(`  URL: ${img.url || "❌ NO URL"}`);
+          console.log(`  Size: ${img.size}`);
+          console.log(`  Dimensions: ${img.width}x${img.height}`);
+        });
+      } catch (uploadError) {
+        const errorMessage =
+          uploadError instanceof Error
+            ? uploadError.message
+            : "Image upload failed";
+        console.error("❌ [ACTION] Image upload error:", errorMessage);
+        throw uploadError;
+      }
+    }
+
+    // Step 3: Call server-side business logic validation
     const result = await processWithdrawalOnServer(formData);
 
     if (!result.success) {
@@ -51,7 +118,7 @@ export async function handleWithdrawSubmitAction(
 
     console.log("✅ [ACTION] Server validation passed");
 
-    // Step 3: Prepare data for Supabase insertion
+    // Step 4: Prepare data for Supabase insertion
     const finalAmount =
       typeof formData.amount === "string"
         ? parseFloat(formData.amount.replace(/[฿,]/g, ""))
@@ -65,9 +132,13 @@ export async function handleWithdrawSubmitAction(
       userId, // Use actual user ID from session
     );
 
-    // Step 4: Insert into Supabase
+    // Step 5: Insert into Supabase with image metadata
     console.log("📤 [ACTION] Inserting into Supabase...");
-    const supabaseResult = await createTransactionInSupabase(transactionData);
+    const supabaseResult = await createTransactionInSupabase(
+      transactionData,
+      processedImages,
+      userId,
+    );
 
     if (!supabaseResult.success) {
       console.error(
