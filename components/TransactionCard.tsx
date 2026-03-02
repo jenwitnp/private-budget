@@ -40,6 +40,7 @@ function _TransactionCard({ transaction: tx }: TransactionCardProps) {
   const { handleApprove, handleReject, handlePay, workflowAction } =
     useWorkflow();
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // Optimistic update state
   const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null);
@@ -105,6 +106,53 @@ function _TransactionCard({ transaction: tx }: TransactionCardProps) {
   // Callback when modal closes (success or cancel)
   const handleModalClose = () => {
     setLoadingAction(null);
+  };
+
+  // Handle PDF download
+  const handleDownloadPDF = async () => {
+    try {
+      setIsDownloading(true);
+      console.log(
+        `📄 [DOWNLOAD] Starting PDF download for transaction: ${tx.id}`,
+      );
+
+      const response = await fetch(`/api/download-transaction?id=${tx.id}`);
+
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.statusText}`);
+      }
+
+      // Get the filename from Content-Disposition header
+      const contentDisposition = response.headers.get("content-disposition");
+      let filename = `TRX-${tx.transactionNumber}.pdf`;
+
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      console.log(`✅ [DOWNLOAD] PDF downloaded: ${filename}`);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      console.error("[DOWNLOAD] Failed to download PDF:", errorMessage);
+      alert(`Download failed: ${errorMessage}`);
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   // Status to badge color mapping
@@ -275,9 +323,22 @@ function _TransactionCard({ transaction: tx }: TransactionCardProps) {
               <i className="fas fa-eye"></i>
               ดูรายละเอียด
             </button>
-            <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium rounded-lg transition-colors text-sm md:text-base">
-              <i className="fas fa-download"></i>
-              ดาวน์โหลด
+            <button
+              onClick={handleDownloadPDF}
+              disabled={isDownloading}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed text-emerald-700 font-medium rounded-lg transition-colors text-sm md:text-base"
+            >
+              {isDownloading ? (
+                <>
+                  <i className="fas fa-spinner animate-spin"></i>
+                  กำลังสร้าง...
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-download"></i>
+                  ดาวน์โหลด
+                </>
+              )}
             </button>
           </div>
 
