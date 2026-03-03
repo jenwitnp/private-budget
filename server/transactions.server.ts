@@ -305,6 +305,58 @@ export async function getTransactionById(id: string): Promise<{
 }
 
 /**
+ * Fetch detailed transaction by ID with all enriched data (categories, users, districts)
+ * Used for PDF generation and detailed views
+ */
+export async function getTransactionDetailById(id: string): Promise<{
+  success: boolean;
+  data?: TransactionDetailWithCategories;
+  error?: string;
+}> {
+  try {
+    // Fetch transaction details from the view (includes category, district, user names)
+    const { data, error } = await (supabase as any)
+      .from("transactions_detail_with_categories")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!data) {
+      throw new Error("Transaction not found");
+    }
+
+    console.group("🔍 [SERVER] Transaction Detail by ID");
+    console.log("Transaction ID:", id);
+    console.log("Found fields:", Object.keys(data).sort());
+    console.log("created_by_name:", data.created_by_name);
+    console.log("approved_by_name:", data.approved_by_name);
+    console.log("paid_by_name:", data.paid_by_name);
+    console.log("category_name:", data.category_name);
+    console.log("district_name:", data.district_name);
+    console.groupEnd();
+
+    return {
+      success: true,
+      data: data as TransactionDetailWithCategories,
+    };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    console.error(
+      `❌ [SERVER] Error in getTransactionDetailById(${id}):`,
+      errorMessage,
+    );
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
+}
+
+/**
  * Fetch transactions with pagination and filtering
  */
 export async function getTransactions(
@@ -670,6 +722,8 @@ export async function payTransaction(
     // Prepare update payload
     const updatePayload = {
       status: "paid",
+      paid_by: userId,
+      paid_at: new Date().toISOString(),
       status_changed_at: new Date().toISOString(),
       status_changed_by: userId,
       processed_at: new Date().toISOString(),

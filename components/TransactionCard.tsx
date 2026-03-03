@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import React from "react";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -35,12 +36,13 @@ interface TransactionCardProps {
 }
 
 function _TransactionCard({ transaction: tx }: TransactionCardProps) {
+  const router = useRouter();
   const workflow = useWorkflowVisibility();
   const userRole = useUserRole();
   const { handleApprove, handleReject, handlePay, workflowAction } =
     useWorkflow();
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [isOpeningPreview, setIsOpeningPreview] = useState(false);
 
   // Optimistic update state
   const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null);
@@ -108,50 +110,21 @@ function _TransactionCard({ transaction: tx }: TransactionCardProps) {
     setLoadingAction(null);
   };
 
-  // Handle PDF download
-  const handleDownloadPDF = async () => {
+  // Handle PDF preview - navigate to preview page with transaction ID
+  const handlePreviewPDF = async () => {
     try {
-      setIsDownloading(true);
+      setIsOpeningPreview(true);
       console.log(
-        `📄 [DOWNLOAD] Starting PDF download for transaction: ${tx.id}`,
+        `🔍 [PREVIEW] Opening PDF preview for transaction: ${tx.id}`,
       );
-
-      const response = await fetch(`/api/download-transaction?id=${tx.id}`);
-
-      if (!response.ok) {
-        throw new Error(`Download failed: ${response.statusText}`);
-      }
-
-      // Get the filename from Content-Disposition header
-      const contentDisposition = response.headers.get("content-disposition");
-      let filename = `TRX-${tx.transactionNumber}.pdf`;
-
-      if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-        if (filenameMatch) {
-          filename = filenameMatch[1];
-        }
-      }
-
-      // Create blob and download
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      console.log(`✅ [DOWNLOAD] PDF downloaded: ${filename}`);
+      await router.push(`/pdf-preview?previewId=${tx.id}`);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      console.error("[DOWNLOAD] Failed to download PDF:", errorMessage);
-      alert(`Download failed: ${errorMessage}`);
+      console.error("[PREVIEW] Failed to open preview:", errorMessage);
+      alert(`Preview failed: ${errorMessage}`);
     } finally {
-      setIsDownloading(false);
+      setIsOpeningPreview(false);
     }
   };
 
@@ -324,19 +297,19 @@ function _TransactionCard({ transaction: tx }: TransactionCardProps) {
               ดูรายละเอียด
             </button>
             <button
-              onClick={handleDownloadPDF}
-              disabled={isDownloading}
+              onClick={handlePreviewPDF}
+              disabled={isOpeningPreview}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed text-emerald-700 font-medium rounded-lg transition-colors text-sm md:text-base"
             >
-              {isDownloading ? (
+              {isOpeningPreview ? (
                 <>
                   <i className="fas fa-spinner animate-spin"></i>
-                  กำลังสร้าง...
+                  กำลังเปิด...
                 </>
               ) : (
                 <>
-                  <i className="fas fa-download"></i>
-                  ดาวน์โหลด
+                  <i className="fas fa-eye"></i>
+                  ดูรูป PDF
                 </>
               )}
             </button>

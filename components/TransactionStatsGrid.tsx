@@ -79,7 +79,7 @@ export function TransactionStatsGrid({
           <Card
             key={card.key}
             className="text-center py-4 md:py-6 hover:shadow-md transition-shadow cursor-pointer flex-shrink-0"
-            style={{ minWidth: "calc((100vw - 48px) / 4)" }}
+            // style={{ minWidth: "calc((100vw - 48px) / 4)" }}
             onClick={() => onStatusClick(card.key)}
           >
             <div className="flex flex-col items-center gap-2">
