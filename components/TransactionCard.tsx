@@ -6,7 +6,6 @@ import React from "react";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ActionButton } from "@/components/ActionButton";
-import { TransactionDetailModal } from "@/components/modals/TransactionDetailModal";
 import { useWorkflowVisibility, useUserRole } from "@/lib/permissions/hooks";
 import { ActionGuard } from "@/lib/permissions/guards";
 import { useWorkflow } from "@/lib/context/WorkflowContext";
@@ -39,9 +38,13 @@ function _TransactionCard({ transaction: tx }: TransactionCardProps) {
   const router = useRouter();
   const workflow = useWorkflowVisibility();
   const userRole = useUserRole();
-  const { handleApprove, handleReject, handlePay, workflowAction } =
-    useWorkflow();
-  const [showDetailModal, setShowDetailModal] = useState(false);
+  const {
+    handleApprove,
+    handleReject,
+    handlePay,
+    handleOpenDetail,
+    workflowAction,
+  } = useWorkflow();
   const [isOpeningPreview, setIsOpeningPreview] = useState(false);
 
   // Optimistic update state
@@ -114,9 +117,7 @@ function _TransactionCard({ transaction: tx }: TransactionCardProps) {
   const handlePreviewPDF = async () => {
     try {
       setIsOpeningPreview(true);
-      console.log(
-        `🔍 [PREVIEW] Opening PDF preview for transaction: ${tx.id}`,
-      );
+      console.log(`🔍 [PREVIEW] Opening PDF preview for transaction: ${tx.id}`);
       await router.push(`/pdf-preview?previewId=${tx.id}`);
     } catch (error) {
       const errorMessage =
@@ -290,7 +291,7 @@ function _TransactionCard({ transaction: tx }: TransactionCardProps) {
           {/* View and Download - Always Available */}
           <div className="flex gap-2">
             <button
-              onClick={() => setShowDetailModal(true)}
+              onClick={() => handleOpenDetail(tx.id)}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium rounded-lg transition-colors text-sm md:text-base"
             >
               <i className="fas fa-eye"></i>
@@ -405,13 +406,6 @@ function _TransactionCard({ transaction: tx }: TransactionCardProps) {
           )}
         </div>
       </div>
-
-      {/* Transaction Detail Modal */}
-      <TransactionDetailModal
-        isOpen={showDetailModal}
-        transactionId={tx.id}
-        onClose={() => setShowDetailModal(false)}
-      />
     </Card>
   );
 }

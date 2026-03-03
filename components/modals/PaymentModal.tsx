@@ -33,7 +33,6 @@ interface PaymentModalProps {
 }
 
 interface PaymentFormData {
-  bankReference?: string;
   net_amount?: string;
 }
 
@@ -56,7 +55,7 @@ export function PaymentModal({
     formState: { errors },
   } = useForm<PaymentFormData>({
     defaultValues: {
-      bankReference: "0.00",
+      net_amount: "0.00",
     },
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -66,10 +65,10 @@ export function PaymentModal({
   useEffect(() => {
     if (transaction?.amount) {
       const formattedAmount = formatCurrency(transaction.amount, 2);
-      setValue("bankReference", formattedAmount);
+      // console.log("fill amount : ", formattedAmount);
       setValue("net_amount", formattedAmount);
     }
-  }, [transaction?.amount, setValue]);
+  }, [transaction]);
 
   const onSubmit = async (data: PaymentFormData) => {
     try {
@@ -91,7 +90,7 @@ export function PaymentModal({
         transactionId,
         session.user.id,
         session.user.role || "",
-        data.bankReference,
+        undefined, // bankReference (optional)
         cleanNetAmount, // Send cleaned value
       );
 
