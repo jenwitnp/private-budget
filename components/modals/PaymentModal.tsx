@@ -61,14 +61,21 @@ export function PaymentModal({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Set initial value when transaction loads
+  // Reset form when modal opens fresh
   useEffect(() => {
-    if (transaction?.amount) {
+    if (isOpen) {
+      reset({ net_amount: "0.00" });
+    }
+  }, [isOpen, reset]);
+
+  // Set amount value when transaction loads (after form reset)
+  useEffect(() => {
+    if (isOpen && transaction?.amount) {
       const formattedAmount = formatCurrency(transaction.amount, 2);
-      // console.log("fill amount : ", formattedAmount);
+      console.log("[PaymentModal] Setting net_amount:", formattedAmount);
       setValue("net_amount", formattedAmount);
     }
-  }, [transaction]);
+  }, [isOpen, transaction?.amount, transaction, setValue]);
 
   const onSubmit = async (data: PaymentFormData) => {
     try {
@@ -106,7 +113,7 @@ export function PaymentModal({
         queryClient.invalidateQueries({ queryKey: ["transactions"] });
       }
 
-      reset();
+      // ✅ Close modal first, form will reset via isOpen useEffect on next open
       onSuccess?.();
       onClose();
     } catch (err) {
@@ -116,6 +123,8 @@ export function PaymentModal({
       onError?.(errorMessage);
     } finally {
       setIsLoading(false);
+      // Reset form state on error (clear for next attempt)
+      reset({ net_amount: "0.00" });
     }
   };
 

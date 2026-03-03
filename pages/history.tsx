@@ -5,7 +5,6 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import type { InfiniteData } from "@tanstack/react-query";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/Card";
-import { Input, Select } from "@/components/ui/Forms";
 import { TransactionFilters } from "@/components/TransactionFilters";
 import { TransactionStatsGrid } from "@/components/TransactionStatsGrid";
 import { WithdrawModal } from "@/components/modals/WithdrawModal";

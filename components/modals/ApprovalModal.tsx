@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useSession } from "next-auth/react";
 import type { QueryClient } from "@tanstack/react-query";
@@ -55,6 +55,13 @@ export function ApprovalModal({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Reset form when modal opens fresh
+  useEffect(() => {
+    if (isOpen) {
+      reset();
+    }
+  }, [isOpen, reset]);
+
   const onSubmit = async (data: ApprovalFormData) => {
     try {
       setIsLoading(true);
@@ -79,7 +86,7 @@ export function ApprovalModal({
         queryClient.invalidateQueries({ queryKey: ["transactions"] });
       }
 
-      reset();
+      // ✅ Close modal first, form will reset via isOpen useEffect on next open
       onSuccess?.();
       onClose();
     } catch (err) {
@@ -89,6 +96,8 @@ export function ApprovalModal({
       onError?.(errorMessage);
     } finally {
       setIsLoading(false);
+      // Reset form state on error (clear for next attempt)
+      reset();
     }
   };
 
