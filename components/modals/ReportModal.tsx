@@ -253,7 +253,7 @@ export function ReportModal({
         {/* Info Box */}
         <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 space-y-2">
           <div className="flex items-start gap-3">
-            <i className="fas fa-info-circle text-blue-600 text-lg mt-0.5 flex-shrink-0"></i>
+            <i className="fas fa-info-circle text-blue-600 text-lg mt-0.5 shrink-0"></i>
             <div className="space-y-1">
               <p className="font-semibold text-blue-900">วิธีการใช้งาน</p>
               <p className="text-sm text-blue-800">

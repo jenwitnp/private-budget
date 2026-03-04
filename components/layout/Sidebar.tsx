@@ -77,7 +77,7 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex items-center justify-center h-20 border-b border-slate-700">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-lg">
+          <div className="w-10 h-10 rounded-lg bg-linear-to-br from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-lg">
             <i className="fa-solid fa-wallet text-xl"></i>
           </div>
           <h1 className="text-xl font-bold tracking-wide">Budget</h1>
