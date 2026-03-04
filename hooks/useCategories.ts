@@ -20,6 +20,7 @@ const QUERY_KEY = ["categories"];
 
 /**
  * Fetch active categories only (for dropdown/select)
+ * Uses React Query for caching and provides fallback to provider context
  */
 export function useActiveCategories(
   options?: UseQueryOptions<Category[], Error>,

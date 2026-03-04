@@ -115,8 +115,11 @@ interface ReportData {
     dateStart?: string;
     dateEnd?: string;
     categoryId?: string;
+    categoryName?: string;
     districtId?: string;
+    districtName?: string;
     subDistrictId?: string;
+    subDistrictName?: string;
   };
   generatedAt: string;
 }
@@ -186,56 +189,9 @@ export function TransactionHistoryReportTemplate({
     .filter((tx) => tx.status === "approved")
     .reduce((sum, tx) => sum + (tx.displayAmount || tx.amount || 0), 0);
 
-  // Debug logging for pending amount calculation
-  console.log("[Report PDF] 📊 Debug - Pending Amount Calculation:");
-  console.log("[Report PDF] Total transactions:", transactions.length);
-  console.log(
-    "[Report PDF] All transactions:",
-    JSON.stringify(
-      transactions.map((tx) => ({
-        id: tx.id,
-        transactionNumber: tx.transactionNumber,
-        status: tx.status,
-        amount: tx.amount,
-        displayAmount: tx.displayAmount,
-      })),
-      null,
-      2,
-    ),
-  );
-
-  const pendingTransactions = transactions.filter(
-    (tx) => tx.status === "pending",
-  );
-  console.log(
-    "[Report PDF] Filtered pending transactions:",
-    pendingTransactions.length,
-  );
-  console.log(
-    "[Report PDF] Pending tx details:",
-    JSON.stringify(
-      pendingTransactions.map((tx) => ({
-        status: tx.status,
-        amount: tx.amount,
-        displayAmount: tx.displayAmount,
-      })),
-      null,
-      2,
-    ),
-  );
-
   const pendingAmount = transactions
     .filter((tx) => tx.status === "pending")
-    .reduce((sum, tx) => {
-      const amount = tx.amount || 0;
-      console.log(
-        `[Report PDF]   Adding pending tx ${tx.transactionNumber}: ${amount}`,
-      );
-      return sum + amount;
-    }, 0);
-
-  console.log("[Report PDF] ✅ Final pendingAmount:", pendingAmount);
-  console.log("[Report PDF] ✅ Final approvedAmount:", approvedAmount);
+    .reduce((sum, tx) => sum + (tx.amount || 0), 0);
 
   return (
     <Document>
@@ -258,25 +214,40 @@ export function TransactionHistoryReportTemplate({
           filters.districtId ||
           filters.subDistrictId) && (
           <View style={styles.filterSection}>
-            <Text style={styles.filterTitle}>ตัวกรองที่ใช้:</Text>
-            {filters.searchTerm && (
-              <Text style={styles.filterText}>ค้นหา: {filters.searchTerm}</Text>
-            )}
-            {filters.statusFilter !== "all" && (
-              <Text style={styles.filterText}>
-                สถานะ: {getStatusLabel(filters.statusFilter)}
-              </Text>
-            )}
-            {filters.dateStart && (
-              <Text style={styles.filterText}>
-                วันเริ่มต้น: {formatDate(filters.dateStart)}
-              </Text>
-            )}
-            {filters.dateEnd && (
-              <Text style={styles.filterText}>
-                วันสิ้นสุด: {formatDate(filters.dateEnd)}
-              </Text>
-            )}
+            {(() => {
+              const filterParts: string[] = [];
+              if (filters.searchTerm) {
+                filterParts.push(`ค้นหา: ${filters.searchTerm}`);
+              }
+              if (filters.statusFilter !== "all") {
+                filterParts.push(
+                  `สถานะ: ${getStatusLabel(filters.statusFilter)}`,
+                );
+              }
+              if (filters.dateStart) {
+                filterParts.push(
+                  `วันเริ่มต้น: ${formatDate(filters.dateStart)}`,
+                );
+              }
+              if (filters.dateEnd) {
+                filterParts.push(`วันสิ้นสุด: ${formatDate(filters.dateEnd)}`);
+              }
+              if (filters.categoryName) {
+                filterParts.push(`หมวดหมู่: ${filters.categoryName}`);
+              }
+              if (filters.districtName) {
+                filterParts.push(`อำเภอ: ${filters.districtName}`);
+              }
+              if (filters.subDistrictName) {
+                filterParts.push(`ตำบล: ${filters.subDistrictName}`);
+              }
+              const filterText = filterParts.join(" | ");
+              return (
+                <Text style={styles.filterTitle}>
+                  ตัวกรองที่ใช้: {filterText}
+                </Text>
+              );
+            })()}
           </View>
         )}
 

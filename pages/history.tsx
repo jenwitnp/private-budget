@@ -7,6 +7,8 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/Card";
 import { TransactionFilters } from "@/components/TransactionFilters";
 import { TransactionStatsGrid } from "@/components/TransactionStatsGrid";
+import { FilterToggleButton } from "@/components/FilterToggleButton";
+import { WithdrawButton } from "@/components/WithdrawButton";
 import { WithdrawModal } from "@/components/modals/WithdrawModal";
 import { ReportModal } from "@/components/modals/ReportModal";
 import { TransactionCard } from "@/components/TransactionCard";
@@ -21,7 +23,6 @@ import {
   buildApiFilters,
 } from "@/lib/helpers/transaction-query-helper";
 import type { WithdrawFormData } from "@/types/withdrawal";
-import type { Transaction } from "@/components/TransactionCard";
 import type { ClientTransaction } from "@/server/transactions.server";
 
 type TransactionResponse = Awaited<ReturnType<typeof getTransactionsAction>>;
@@ -167,33 +168,6 @@ function _HistoryPageContent({
         pageSize: 6,
       };
 
-      // 🐛 DEBUG: Log client-side filter transformation with timezone conversion
-      console.group("📤 [CLIENT] Filter Transformation - Timezone Aware");
-      console.log(
-        "%c🇹🇭 Input (Thai Local Time UTC+7):",
-        "color: #f59e0b; font-weight: bold; font-size: 12px;",
-        {
-          dateStart: filters.dateStart || "N/A",
-          dateEnd: filters.dateEnd || "N/A",
-          statusFilter: filters.statusFilter,
-        },
-      );
-      console.log(
-        "%c🌐 Converted to UTC (Database Format):",
-        "color: #8b5cf6; font-weight: bold; font-size: 12px;",
-        {
-          "GTE (Start)": Object.values(gte)[0] || "N/A",
-          "LTE (End)": Object.values(lte)[0] || "N/A",
-          note: "Thai date -7 hours = UTC (local midnight = UTC previous 17:00)",
-        },
-      );
-      console.log(
-        "  API Filters (equality):",
-        Object.keys(apiFilters).length > 0 ? apiFilters : "{}",
-      );
-      console.log("  Full Request:", requestPayload);
-      console.groupEnd();
-
       return getTransactionsAction(requestPayload);
     },
     getNextPageParam: (lastPage) =>
@@ -238,7 +212,6 @@ function _HistoryPageContent({
 
   const handleWithdrawSubmit = async (data: WithdrawFormData) => {
     try {
-      console.log("✅ Transaction created successfully - invalidating cache");
       setIsWithdrawModalOpen(false);
 
       // Invalidate transaction queries to trigger refetch
@@ -272,29 +245,13 @@ function _HistoryPageContent({
         </h1>
         <div className="flex items-center gap-2">
           {/* Filter Toggle Button - Mobile Only */}
-          <button
+          <FilterToggleButton
+            isExpanded={isFiltersExpanded}
             onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
-            className={`md:hidden px-4 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-              isFiltersExpanded
-                ? "bg-emerald-600 text-white shadow-md"
-                : "bg-slate-200 text-slate-700 hover:bg-slate-300"
-            }`}
-          >
-            <i
-              className={`fas fa-${isFiltersExpanded ? "times" : "sliders-h"}`}
-            ></i>
-            <span className="text-sm">
-              {isFiltersExpanded ? "ปิด" : "ตัวกรอง"}
-            </span>
-          </button>
+            filters={filters}
+          />
           {/* Withdraw Button */}
-          <button
-            onClick={() => setIsWithdrawModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors shadow-sm"
-          >
-            <i className="fa-solid fa-arrow-right-from-bracket"></i>
-            เบิกเงิน
-          </button>
+          <WithdrawButton onClick={() => setIsWithdrawModalOpen(true)} />
           {/* Report Button */}
           <button
             onClick={() => setIsReportModalOpen(true)}
