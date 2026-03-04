@@ -10,18 +10,28 @@ import { Font } from "@react-pdf/renderer";
 import path from "path";
 import fs from "fs";
 
-// Register custom fonts once at module load
+// Register custom fonts once at module load using base64 data URLs for server-side rendering
 const fontPath = path.join(process.cwd(), "fonts/Sarabun");
 try {
+  const regularFontBuffer = fs.readFileSync(
+    path.join(fontPath, "Sarabun-Regular.ttf"),
+  );
+  const boldFontBuffer = fs.readFileSync(
+    path.join(fontPath, "Sarabun-Bold.ttf"),
+  );
+
+  const regularFontBase64 = regularFontBuffer.toString("base64");
+  const boldFontBase64 = boldFontBuffer.toString("base64");
+
   Font.register({
     family: "Sarabun",
     fonts: [
       {
-        src: path.join(fontPath, "Sarabun-Regular.ttf"),
+        src: `data:font/ttf;base64,${regularFontBase64}`,
         fontWeight: "normal",
       },
       {
-        src: path.join(fontPath, "Sarabun-Bold.ttf"),
+        src: `data:font/ttf;base64,${boldFontBase64}`,
         fontWeight: "bold",
       },
     ],

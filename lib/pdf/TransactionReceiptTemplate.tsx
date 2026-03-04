@@ -285,9 +285,9 @@ export function TransactionReceiptTemplate({
   };
 
   // Option B: Calculate width to maintain aspect ratio without overlap
-  const containerWidth = 798; // Available width for images (A4 landscape minus margins and padding)
+  const containerWidth = 825; // Available width for images (A4 landscape minus margins and padding)
   const gapSize = 4;
-  const imagesPerRow = 5; // Adjust this to fit your design
+  const imagesPerRow = 6; // Adjust this to fit your design
   const imageWidth =
     (containerWidth - gapSize * (imagesPerRow - 1)) / imagesPerRow;
 

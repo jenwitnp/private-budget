@@ -52,10 +52,10 @@ export function Modal({
       {/* Modal Container */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
         <div
-          className={`bg-white rounded-2xl shadow-xl ${sizeClasses[size]} w-full max-h-screen overflow-y-auto pointer-events-auto`}
+          className={`bg-white rounded-2xl shadow-xl ${sizeClasses[size]} w-full max-h-screen overflow-visible flex flex-col pointer-events-auto`}
         >
           {/* Modal Header */}
-          <div className="flex items-center justify-between p-6 border-b border-slate-100 sticky top-0 bg-white">
+          <div className="flex items-center justify-between p-6 border-b border-slate-100 sticky top-0 bg-white z-10">
             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
               {icon && <i className={`fa-solid ${icon} text-emerald-500`}></i>}
               {title}
@@ -74,7 +74,7 @@ export function Modal({
           </div>
 
           {/* Modal Content */}
-          {children}
+          <div className="overflow-y-auto flex-1">{children}</div>
         </div>
       </div>
     </>

@@ -127,7 +127,7 @@ export function generateTransactionNumber(): string {
   const second = String(now.getSeconds()).padStart(2, "0");
   const random = String(Math.floor(Math.random() * 10000)).padStart(4, "0");
 
-  return `TXN-${year}${month}${day}-${hour}${minute}${second}-${random}`;
+  return `PRV-${year}${month}${day}-${random}`;
 }
 
 /**

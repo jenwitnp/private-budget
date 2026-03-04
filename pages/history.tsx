@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { TransactionFilters } from "@/components/TransactionFilters";
 import { TransactionStatsGrid } from "@/components/TransactionStatsGrid";
 import { WithdrawModal } from "@/components/modals/WithdrawModal";
+import { ReportModal } from "@/components/modals/ReportModal";
 import { TransactionCard } from "@/components/TransactionCard";
 import { ToastContainer } from "@/components/ToastContainer";
 import { usePermissions } from "@/lib/permissions/hooks";
@@ -44,6 +45,7 @@ function _HistoryPageContent({
   const queryClient = useQueryClient();
 
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -293,6 +295,14 @@ function _HistoryPageContent({
             <i className="fa-solid fa-arrow-right-from-bracket"></i>
             เบิกเงิน
           </button>
+          {/* Report Button */}
+          <button
+            onClick={() => setIsReportModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm"
+          >
+            <i className="fas fa-file-pdf"></i>
+            รายงาน
+          </button>
         </div>
       </div>
 
@@ -402,6 +412,13 @@ function _HistoryPageContent({
         isOpen={isWithdrawModalOpen}
         onClose={() => setIsWithdrawModalOpen(false)}
         onSubmit={handleWithdrawSubmit}
+      />
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        currentFilters={filters}
       />
     </DashboardLayout>
   );
