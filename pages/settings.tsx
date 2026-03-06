@@ -52,6 +52,9 @@ export default function SettingsPage() {
   } = useForm<PasswordFormData>();
 
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState<{
     type: "success" | "error";
     text: string;
@@ -116,9 +119,11 @@ export default function SettingsPage() {
       resetPassword();
       setTimeout(() => setShowPasswordModal(false), 2000);
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error("❌ Change password error:", errorMessage);
       setPasswordMessage({
         type: "error",
-        text: (err as Error).message || "เกิดข้อผิดพลาด",
+        text: errorMessage || "เกิดข้อผิดพลาด",
       });
     }
   };
@@ -210,6 +215,9 @@ export default function SettingsPage() {
         onClose={() => {
           setShowPasswordModal(false);
           setPasswordMessage(null);
+          setShowCurrentPassword(false);
+          setShowNewPassword(false);
+          setShowConfirmPassword(false);
           resetPassword();
         }}
         title="เปลี่ยนรหัสผ่าน"
@@ -240,39 +248,132 @@ export default function SettingsPage() {
             onSubmit={handlePasswordSubmit(onPasswordSubmit)}
             className="space-y-4"
           >
-            <Input
-              label="รหัสผ่านปัจจุบัน"
-              type="password"
-              placeholder="••••••••"
-              register={registerPassword("current_password", {
-                required: "กรุณากรอกรหัสผ่านปัจจุบัน",
-              })}
-              error={passwordErrors.current_password}
-            />
+            {/* Current Password */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                รหัสผ่านปัจจุบัน
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                  <i className="fa-solid fa-lock"></i>
+                </span>
+                <input
+                  type={showCurrentPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  {...registerPassword("current_password", {
+                    required: "กรุณากรอกรหัสผ่านปัจจุบัน",
+                  })}
+                  className={`block w-full pl-10 pr-10 py-3 border rounded-xl focus:ring-2 focus:border-transparent transition-all ${
+                    passwordErrors.current_password
+                      ? "border-red-300 focus:ring-red-500"
+                      : "border-slate-200 focus:ring-emerald-500"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <i
+                    className={`fa-regular ${
+                      showCurrentPassword ? "fa-eye-slash" : "fa-eye"
+                    }`}
+                  ></i>
+                </button>
+              </div>
+              {passwordErrors.current_password && (
+                <p className="mt-1 text-sm text-red-600">
+                  {passwordErrors.current_password.message}
+                </p>
+              )}
+            </div>
 
-            <Input
-              label="รหัสผ่านใหม่"
-              type="password"
-              placeholder="••••••••"
-              register={registerPassword("new_password", {
-                required: "กรุณากรอกรหัสผ่านใหม่",
-                minLength: {
-                  value: 6,
-                  message: "รหัสผ่านต้องยาวอย่างน้อย 6 ตัวอักษร",
-                },
-              })}
-              error={passwordErrors.new_password}
-            />
+            {/* New Password */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                รหัสผ่านใหม่
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                  <i className="fa-solid fa-key"></i>
+                </span>
+                <input
+                  type={showNewPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  {...registerPassword("new_password", {
+                    required: "กรุณากรอกรหัสผ่านใหม่",
+                    minLength: {
+                      value: 6,
+                      message: "รหัสผ่านต้องยาวอย่างน้อย 6 ตัวอักษร",
+                    },
+                  })}
+                  className={`block w-full pl-10 pr-10 py-3 border rounded-xl focus:ring-2 focus:border-transparent transition-all ${
+                    passwordErrors.new_password
+                      ? "border-red-300 focus:ring-red-500"
+                      : "border-slate-200 focus:ring-emerald-500"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <i
+                    className={`fa-regular ${
+                      showNewPassword ? "fa-eye-slash" : "fa-eye"
+                    }`}
+                  ></i>
+                </button>
+              </div>
+              {passwordErrors.new_password && (
+                <p className="mt-1 text-sm text-red-600">
+                  {passwordErrors.new_password.message}
+                </p>
+              )}
+            </div>
 
-            <Input
-              label="ยืนยันรหัสผ่านใหม่"
-              type="password"
-              placeholder="••••••••"
-              register={registerPassword("confirm_password", {
-                required: "กรุณายืนยันรหัสผ่าน",
-              })}
-              error={passwordErrors.confirm_password}
-            />
+            {/* Confirm Password */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                ยืนยันรหัสผ่านใหม่
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                  <i className="fa-solid fa-check"></i>
+                </span>
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  {...registerPassword("confirm_password", {
+                    required: "กรุณายืนยันรหัสผ่าน",
+                  })}
+                  className={`block w-full pl-10 pr-10 py-3 border rounded-xl focus:ring-2 focus:border-transparent transition-all ${
+                    passwordErrors.confirm_password
+                      ? "border-red-300 focus:ring-red-500"
+                      : "border-slate-200 focus:ring-emerald-500"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <i
+                    className={`fa-regular ${
+                      showConfirmPassword ? "fa-eye-slash" : "fa-eye"
+                    }`}
+                  ></i>
+                </button>
+              </div>
+              {passwordErrors.confirm_password && (
+                <p className="mt-1 text-sm text-red-600">
+                  {passwordErrors.confirm_password.message}
+                </p>
+              )}
+            </div>
 
             <div className="flex gap-2 pt-4">
               <button

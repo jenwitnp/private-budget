@@ -19,7 +19,8 @@ export function useUserSettings(userId: string | null) {
     queryFn: async () => {
       if (!userId) throw new Error("User ID is required");
       const result = await getUserSettings(userId);
-      if (!result.success) throw new Error(result.error);
+      if (!result.success)
+        throw new Error(result.error || "Failed to fetch settings");
       return result.data;
     },
     enabled: !!userId,
@@ -38,7 +39,8 @@ export function useUpdateSettings(userId: string | null) {
     mutationFn: async (input: UpdateSettingsInput) => {
       if (!userId) throw new Error("User ID is required");
       const result = await updateSettings(userId, input);
-      if (!result.success) throw new Error(result.error);
+      if (!result.success)
+        throw new Error(result.error || "Failed to update settings");
       return result.data;
     },
     onSuccess: (data) => {
@@ -62,7 +64,15 @@ export function useChangePassword(userId: string | null) {
     mutationFn: async (input: ChangePasswordInput) => {
       if (!userId) throw new Error("User ID is required");
       const result = await changePassword(userId, input);
-      if (!result.success) throw new Error(result.error);
+
+      if (!result.success) {
+        const errorMessage =
+          result.error?.trim() || "Failed to change password";
+        console.error("❌ [CHANGE_PASSWORD] Error:", errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      console.log("✅ [CHANGE_PASSWORD] Success");
       return result;
     },
     onSuccess: () => {
@@ -73,7 +83,10 @@ export function useChangePassword(userId: string | null) {
       }
     },
     onError: (error) => {
-      console.error("❌ Change password error:", error);
+      console.error(
+        "❌ Change password error:",
+        error instanceof Error ? error.message : error,
+      );
     },
   });
 }
