@@ -113,17 +113,36 @@ function _TransactionCard({ transaction: tx }: TransactionCardProps) {
     setLoadingAction(null);
   };
 
-  // Handle PDF preview - navigate to preview page with transaction ID
-  const handlePreviewPDF = async () => {
+  // Handle PDF download - fetch PDF from API and trigger browser download
+  const handleDownloadPDF = async () => {
     try {
       setIsOpeningPreview(true);
-      console.log(`🔍 [PREVIEW] Opening PDF preview for transaction: ${tx.id}`);
-      await router.push(`/pdf-preview?previewId=${tx.id}`);
+      console.log(`📥 [DOWNLOAD] Downloading PDF for transaction: ${tx.id}`);
+
+      const response = await fetch(`/api/download-transaction?id=${tx.id}`);
+
+      if (!response.ok) {
+        throw new Error(`Failed to download PDF: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `TRX-${tx.transactionNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+
+      console.log(
+        `✅ [DOWNLOAD] PDF downloaded successfully for transaction: ${tx.id}`,
+      );
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      console.error("[PREVIEW] Failed to open preview:", errorMessage);
-      alert(`Preview failed: ${errorMessage}`);
+      console.error("[DOWNLOAD] Failed to download PDF:", errorMessage);
+      alert(`Download failed: ${errorMessage}`);
     } finally {
       setIsOpeningPreview(false);
     }
@@ -298,19 +317,19 @@ function _TransactionCard({ transaction: tx }: TransactionCardProps) {
               ดูรายละเอียด
             </button>
             <button
-              onClick={handlePreviewPDF}
+              onClick={handleDownloadPDF}
               disabled={isOpeningPreview}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed text-emerald-700 font-medium rounded-lg transition-colors text-sm md:text-base"
             >
               {isOpeningPreview ? (
                 <>
                   <i className="fas fa-spinner animate-spin"></i>
-                  กำลังเปิด...
+                  กำลังดาวน์โหลด...
                 </>
               ) : (
                 <>
-                  <i className="fas fa-eye"></i>
-                  ดูรูป PDF
+                  <i className="fas fa-download"></i>
+                  ดาวน์โหลด PDF
                 </>
               )}
             </button>

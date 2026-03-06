@@ -137,7 +137,7 @@ export function ApprovalModal({
                   </div>
                 )}
 
-                <p className="text-sm text-slate-600 mb-4">
+                {/* <p className="text-sm text-slate-600 mb-4">
                   คุณกำลังจะอนุมัติรายการถอนเงินนี้
                   ท่านสามารถเพิ่มหมายเหตุได้หากจำเป็น
                 </p>
@@ -148,7 +148,7 @@ export function ApprovalModal({
                   placeholder="เพิ่มหมายเหตุเกี่ยวกับการอนุมัติ..."
                   error={errors.notes}
                   rows={3}
-                />
+                /> */}
               </div>
 
               {/* Action Buttons */}

@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import type { InfiniteData } from "@tanstack/react-query";
-import DashboardLayout from "@/components/layout/DashboardLayout";
+import Layout from "@/components/layout/Layout";
 import { Card } from "@/components/ui/Card";
 import { TransactionFilters } from "@/components/TransactionFilters";
 import { TransactionStatsGrid } from "@/components/TransactionStatsGrid";
@@ -22,6 +22,7 @@ import {
   parseTransactionFiltersFromQuery,
   buildApiFilters,
 } from "@/lib/helpers/transaction-query-helper";
+import { requireAuth } from "@/lib/auth/withAuth";
 import type { WithdrawFormData } from "@/types/withdrawal";
 import type { ClientTransaction } from "@/server/transactions.server";
 
@@ -233,7 +234,7 @@ function _HistoryPageContent({
   };
 
   return (
-    <DashboardLayout>
+    <Layout>
       {/* Toast Container */}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
@@ -377,7 +378,7 @@ function _HistoryPageContent({
         onClose={() => setIsReportModalOpen(false)}
         currentFilters={filters}
       />
-    </DashboardLayout>
+    </Layout>
   );
 }
 
@@ -418,3 +419,5 @@ export default function HistoryPage() {
     </WorkflowProvider>
   );
 }
+
+export const getServerSideProps = requireAuth;

@@ -4,7 +4,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import DashboardLayout from "@/components/layout/DashboardLayout";
+import Layout from "@/components/layout/Layout";
+import { requireAuth } from "@/lib/auth/withAuth";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/form/Input";
@@ -123,7 +124,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <DashboardLayout>
+    <Layout>
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Profile Section */}
         <Card>
@@ -133,7 +134,7 @@ export default function SettingsPage() {
           <div className="flex flex-col md:flex-row gap-8 items-start">
             {/* Avatar */}
             <div className="flex flex-col items-center gap-3">
-              <div className="w-24 h-24 rounded-full bg-emerald-500 border-4 border-white shadow-md overflow-hidden flex items-center justify-center text-white text-4xl font-bold">
+              <div className="w-24 h-24 rounded-full bg-blue-500 border-4 border-white shadow-md overflow-hidden flex items-center justify-center text-white text-4xl font-bold">
                 {userInitial}
               </div>
               <p className="text-sm text-slate-600 font-medium">
@@ -220,7 +221,7 @@ export default function SettingsPage() {
             <div
               className={`p-3 rounded-lg ${
                 passwordMessage.type === "success"
-                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                  ? "bg-blue-50 text-blue-700 border border-blue-200"
                   : "bg-red-50 text-red-700 border border-red-200"
               }`}
             >
@@ -288,7 +289,7 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={changePasswordMutation.isPending}
-                className="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium disabled:opacity-50"
+                className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50"
               >
                 {changePasswordMutation.isPending
                   ? "กำลังเปลี่ยน..."
@@ -298,6 +299,8 @@ export default function SettingsPage() {
           </form>
         </div>
       </Modal>
-    </DashboardLayout>
+    </Layout>
   );
 }
+
+export const getServerSideProps = requireAuth;

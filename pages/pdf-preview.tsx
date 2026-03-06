@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
-import DashboardLayout from "@/components/layout/DashboardLayout";
+import Layout from "@/components/layout/Layout";
+import { requireAuth } from "@/lib/auth/withAuth";
 
 interface Transaction {
   id: string;
@@ -49,7 +50,7 @@ export default function PDFPreviewPage() {
   );
 
   return (
-    <DashboardLayout>
+    <Layout>
       <div className="space-y-6 p-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">PDF Preview</h1>
@@ -234,6 +235,8 @@ export default function PDFPreviewPage() {
           </ul>
         </div>
       </div>
-    </DashboardLayout>
+    </Layout>
   );
 }
+
+export const getServerSideProps = requireAuth;

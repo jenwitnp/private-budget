@@ -21,7 +21,7 @@ export function Button({
 }: ButtonProps) {
   const variantClasses = {
     primary:
-      "bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-500/30",
+      "bg-blue-900 text-white hover:bg-blue-800 shadow-lg shadow-blue-700/30",
     secondary: "bg-slate-200 text-slate-800 hover:bg-slate-300",
     danger: "bg-red-600 text-white hover:bg-red-700",
     outline: "border border-slate-200 text-slate-700 hover:bg-slate-50",

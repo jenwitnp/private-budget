@@ -4,10 +4,13 @@ import { useSession, signOut } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/router";
 import { getRoleDisplayName } from "@/lib/auth/roles";
+import { GridMenu } from "@/components/GridMenu";
 
 export function Header() {
   const { data: session } = useSession();
+  const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
@@ -27,10 +30,10 @@ export function Header() {
       {/* Mobile Header */}
       <header className="flex md:hidden items-center justify-between p-4 bg-white border-b shadow-sm z-20">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-md bg-emerald-500 flex items-center justify-center text-white">
+          <div className="w-8 h-8 rounded-md bg-blue-900 flex items-center justify-center text-white">
             <i className="fa-solid fa-wallet text-sm"></i>
           </div>
-          <h1 className="font-bold text-slate-800">Budget</h1>
+          <h1 className="font-bold text-slate-800">เบิกคัพ</h1>
         </div>
         <button
           onClick={() => setShowMobileMenu(!showMobileMenu)}
@@ -111,106 +114,30 @@ export function Header() {
         </div>
       </header>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile Grid Menu Modal */}
       {showMobileMenu && (
         <div
-          className="md:hidden fixed inset-0 z-40 bg-black/50"
+          className="md:hidden fixed inset-0 z-40 bg-black/50 overflow-y-auto"
           onClick={() => setShowMobileMenu(false)}
         >
-          <nav className="absolute left-0 top-20 bottom-0 w-64 bg-slate-900 text-white overflow-y-auto">
-            <div className="p-4 space-y-2">
-              {/* Menu Items */}
-              <Link
-                href="/"
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-all"
-                onClick={() => setShowMobileMenu(false)}
-              >
-                <i className="fa-solid fa-chart-pie"></i>
-                <span>ภาพรวม (Dashboard)</span>
-              </Link>
-              <Link
-                href="/history"
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-all"
-                onClick={() => setShowMobileMenu(false)}
-              >
-                <i className="fa-solid fa-money-bill-transfer"></i>
-                <span>ประวัติการถอน</span>
-              </Link>
-              <Link
-                href="/accounts"
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-all"
-                onClick={() => setShowMobileMenu(false)}
-              >
-                <i className="fa-solid fa-landmark"></i>
-                <span>บัญชีธนาคาร</span>
-              </Link>
-              <Link
-                href="/settings"
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-all"
-                onClick={() => setShowMobileMenu(false)}
-              >
-                <i className="fa-solid fa-user-gear"></i>
-                <span>ตั้งค่าบัญชี</span>
-              </Link>
-
-              {/* Admin Section */}
-              {(session?.user?.role === "owner" ||
-                session?.user?.role === "admin") && (
-                <>
-                  <div className="my-4 border-t border-slate-700"></div>
-                  <div className="px-4 py-2 text-xs uppercase font-semibold text-slate-500">
-                    <i className="fa-solid fa-shield mr-2"></i>
-                    ผู้ดูแลระบบ
-                  </div>
-                  <Link
-                    href="/admin/users"
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-all"
-                    onClick={() => setShowMobileMenu(false)}
-                  >
-                    <i className="fa-solid fa-users"></i>
-                    <span>จัดการผู้ใช้งาน</span>
-                  </Link>
-                  <Link
-                    href="/admin/categories"
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-all"
-                    onClick={() => setShowMobileMenu(false)}
-                  >
-                    <i className="fa-solid fa-list"></i>
-                    <span>จัดการหมวดหมู่</span>
-                  </Link>
-                  <Link
-                    href="/admin/transactions"
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-all"
-                    onClick={() => setShowMobileMenu(false)}
-                  >
-                    <i className="fa-solid fa-list"></i>
-                    <span>จัดการรายการทั้งหมด</span>
-                  </Link>
-                  <Link
-                    href="/admin/reports"
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-all"
-                    onClick={() => setShowMobileMenu(false)}
-                  >
-                    <i className="fa-solid fa-chart-line"></i>
-                    <span>รายงาน</span>
-                  </Link>
-                </>
-              )}
-
-              {/* Divider & Logout */}
-              <div className="my-4 border-t border-slate-700"></div>
+          <div
+            className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pt-4 pb-8 px-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <div className="flex justify-end items-center mb-6">
+              {/* <h2 className="text-xl font-bold text-slate-900">เมนู</h2> */}
               <button
-                onClick={() => {
-                  handleLogout();
-                  setShowMobileMenu(false);
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-400 transition-colors"
+                onClick={() => setShowMobileMenu(false)}
+                className="text-slate-500 hover:text-slate-700"
               >
-                <i className="fa-solid fa-right-from-bracket"></i>
-                <span>ออกจากระบบ</span>
+                <i className="fa-solid fa-x text-xl"></i>
               </button>
             </div>
-          </nav>
+
+            {/* Grid Menu Component */}
+            <GridMenu onClose={() => setShowMobileMenu(false)} />
+          </div>
         </div>
       )}
     </>

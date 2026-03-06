@@ -4,10 +4,11 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import DashboardLayout from "@/components/layout/DashboardLayout";
+import Layout from "@/components/layout/Layout";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/form/Input";
+import { requireAuth } from "@/lib/auth/withAuth";
 import { Select } from "@/components/form/Select";
 import { Autocomplete } from "@/components/form/Autocomplete";
 import { Modal } from "@/components/ui/Modal";
@@ -164,30 +165,30 @@ export default function AccountsPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout>
+      <Layout>
         <div className="flex items-center justify-center py-16">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
             <p className="text-slate-600">กำลังโหลด...</p>
           </div>
         </div>
-      </DashboardLayout>
+      </Layout>
     );
   }
 
   if (fetchError) {
     return (
-      <DashboardLayout>
+      <Layout>
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
           <i className="fa-solid fa-exclamation-circle mr-2"></i>
           ไม่สามารถโหลดข้อมูลบัญชีได้ กรุณาลองใหม่อีกครั้ง
         </div>
-      </DashboardLayout>
+      </Layout>
     );
   }
 
   return (
-    <DashboardLayout>
+    <Layout>
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-slate-800">บัญชีธนาคารของฉัน</h1>
@@ -203,12 +204,12 @@ export default function AccountsPage() {
             key={account.id}
             className={`relative ${
               account.is_primary
-                ? "border-emerald-500 ring-4 ring-emerald-500/10"
-                : "hover:border-emerald-300"
+                ? "border-blue-500 ring-4 ring-blue-500/10"
+                : "hover:border-blue-300"
             }`}
           >
             {account.is_primary && (
-              <div className="absolute top-0 right-0 bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl shadow-sm">
+              <div className="absolute top-0 right-0 bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl shadow-sm">
                 บัญชีหลัก
                 <i className="fa-solid fa-star ml-1 text-yellow-300"></i>
               </div>
@@ -222,7 +223,7 @@ export default function AccountsPage() {
                 <span
                   className={`text-xs px-2 py-1 rounded-full ${
                     account.is_active
-                      ? "bg-emerald-100 text-emerald-700"
+                      ? "bg-blue-100 text-blue-700"
                       : "bg-slate-100 text-slate-700"
                   }`}
                 >
@@ -374,7 +375,7 @@ export default function AccountsPage() {
             <button
               type="submit"
               disabled={createMutation.isPending || updateMutation.isPending}
-              className="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium disabled:opacity-50"
+              className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50"
             >
               {createMutation.isPending || updateMutation.isPending
                 ? "กำลังบันทึก..."
@@ -383,6 +384,8 @@ export default function AccountsPage() {
           </div>
         </form>
       </Modal>
-    </DashboardLayout>
+    </Layout>
   );
 }
+
+export const getServerSideProps = requireAuth;

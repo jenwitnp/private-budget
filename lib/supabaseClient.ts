@@ -1,5 +1,4 @@
 import { createClient } from "@supabase/supabase-js";
-import { Database } from "./database.types";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -8,7 +7,8 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error("Missing Supabase environment variables");
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
+// Use any type to avoid "Type instantiation is excessively deep" error
+export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
@@ -24,7 +24,7 @@ export const getSupabaseAdmin = () => {
     throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
   }
 
-  return createClient<Database>(supabaseUrl, serviceRoleKey, {
+  return createClient(supabaseUrl, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
@@ -32,5 +32,5 @@ export const getSupabaseAdmin = () => {
   });
 };
 
-// Export types
-export type SupabaseClient = typeof supabase;
+// Export client type for usage
+export type SupabaseClient = ReturnType<typeof createClient>;

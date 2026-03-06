@@ -157,7 +157,7 @@ export function WithdrawModal({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title="ถอนเงิน"
+      title="เบิกเงิน"
       icon="fa-arrow-right-from-bracket"
       isLoading={loading}
     >

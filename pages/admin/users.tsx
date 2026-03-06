@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import DashboardLayout from "@/components/layout/DashboardLayout";
+import Layout from "@/components/layout/Layout";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/form/Input";
 import { Select } from "@/components/form/Select";
 import { Modal } from "@/components/ui/Modal";
+import { requireAuth } from "@/lib/auth/withAuth";
 import {
   useUsers,
   useCreateUser,
@@ -138,30 +139,30 @@ export default function UsersPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout>
+      <Layout>
         <div className="flex items-center justify-center py-16">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
-            <p className="text-slate-600">กำลังโหลดข้อมูล...</p>
+            <p className="text-slate-600">กำลังโหลกข้อมูล ผู้ใช้งาน...</p>
           </div>
         </div>
-      </DashboardLayout>
+      </Layout>
     );
   }
 
   if (fetchError) {
     return (
-      <DashboardLayout>
+      <Layout>
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
           <i className="fa-solid fa-exclamation-circle mr-2"></i>
           ไม่สามารถโหลดข้อมูลผู้ใช้ได้ กรุณาลองใหม่อีกครั้ง
         </div>
-      </DashboardLayout>
+      </Layout>
     );
   }
 
   return (
-    <DashboardLayout>
+    <Layout>
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-slate-800">จัดการผู้ใช้</h1>
@@ -456,6 +457,8 @@ export default function UsersPage() {
           </div>
         </form>
       </Modal>
-    </DashboardLayout>
+    </Layout>
   );
 }
+
+export const getServerSideProps = requireAuth;

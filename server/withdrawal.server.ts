@@ -178,6 +178,7 @@ export function prepareTransactionDataForSupabase(
     item_name: formData.itemName || null,
     transaction_number: transactionNumber,
     user_id: userId,
+    created_by: userId,
     bank_account_id:
       !formData.bankAccountId || formData.bankAccountId.trim() === ""
         ? null
