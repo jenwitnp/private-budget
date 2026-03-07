@@ -42,9 +42,11 @@ export interface ClientTransaction {
   approvedByName?: string;
   paidByName?: string;
   paymentMethod?: string;
+  payment_method?: string;
   categoryName?: string;
   districtName?: string;
   thumbnail?: string | null; // First image URL if exists
+  bank_account_id?: string; // Bank account ID for payment form
 }
 
 export interface TransactionWithBankDetails extends Transaction {
@@ -671,6 +673,8 @@ export async function payTransaction(
   userId: string,
   bankReference?: string,
   netAmount?: string,
+  paymentMethod?: string,
+  bankAccountId?: string,
 ): Promise<{
   success: boolean;
   message?: string;
@@ -720,7 +724,7 @@ export async function payTransaction(
     }
 
     // Prepare update payload
-    const updatePayload = {
+    const updatePayload: any = {
       status: "paid",
       paid_by: userId,
       paid_at: new Date().toISOString(),
@@ -734,6 +738,14 @@ export async function payTransaction(
         : "Payment processed",
       updated_at: new Date().toISOString(),
     };
+
+    // Add payment method and bank account if provided
+    if (paymentMethod) {
+      updatePayload.payment_method = paymentMethod;
+    }
+    if (bankAccountId) {
+      updatePayload.bank_account_id = bankAccountId;
+    }
 
     // Update transaction
     const { error: updateError } = await (supabase as any)

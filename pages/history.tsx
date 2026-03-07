@@ -13,10 +13,12 @@ import { WithdrawModal } from "@/components/modals/WithdrawModal";
 import { ReportModal } from "@/components/modals/ReportModal";
 import { TransactionCard } from "@/components/TransactionCard";
 import { ToastContainer } from "@/components/ToastContainer";
-import { usePermissions } from "@/lib/permissions/hooks";
+import { usePermissions, useUserRole } from "@/lib/permissions/hooks";
+import type { UserRole } from "@/lib/permissions/config";
 import { getTransactionsAction } from "@/actions/transactions";
+import { fetchTransactionStatsAction } from "@/actions/stats";
 import { useToast } from "@/hooks/useToast";
-import { useTransactionStats } from "@/hooks/useTransactionStats";
+import { useQuery } from "@tanstack/react-query";
 import { WorkflowProvider } from "@/lib/context/WorkflowContext";
 import {
   parseTransactionFiltersFromQuery,
@@ -34,11 +36,13 @@ function _HistoryPageContent({
   setFilters,
   error,
   setError,
+  userRole,
 }: {
   filters: any;
   setFilters: (filters: any) => void;
   error: string | null;
   setError: (error: string | null) => void;
+  userRole?: UserRole;
 }) {
   // ✅ Workflow context is now used directly within TransactionCard
   const { data: session } = useSession();
@@ -125,14 +129,61 @@ function _HistoryPageContent({
     return statusMap[status] || "ทั้งหมด";
   };
 
-  // Fetch transaction stats for all statuses
-  const { data: stats, isLoading: statsLoading } = useTransactionStats({
-    search: filters.searchTerm,
-    categoryId: filters.categoryId,
-    districtId: filters.districtId,
-    subDistrictId: filters.subDistrictId,
-    dateStart: filters.dateStart,
-    dateEnd: filters.dateEnd,
+  // Fetch transaction stats for all statuses using RPC function
+  console.log("🔍 [History] Query enabled check:", {
+    hasUserId: !!session?.user?.id,
+    hasUserRole: !!userRole,
+    userId: session?.user?.id,
+    userRole,
+  });
+
+  const { data: statsResponse, isLoading: statsLoading } = useQuery({
+    queryKey: [
+      "transaction-stats",
+      session?.user?.id,
+      userRole,
+      JSON.stringify(filters),
+    ],
+    queryFn: async () => {
+      console.log("📊 [History] Fetching stats with:", {
+        userId: session?.user?.id,
+        userRole,
+        search: filters.searchTerm || undefined,
+        categoryId: filters.categoryId || undefined, // UUID string
+        districtId: filters.districtId
+          ? parseInt(filters.districtId)
+          : undefined, // BIGINT
+        subDistrictId: filters.subDistrictId
+          ? parseInt(filters.subDistrictId)
+          : undefined, // BIGINT
+      });
+
+      const result = await fetchTransactionStatsAction(
+        session?.user?.id,
+        userRole,
+        filters.searchTerm || undefined,
+        filters.categoryId || undefined, // categoryId is UUID (keep as string)
+        filters.districtId ? parseInt(filters.districtId) : undefined, // districtId is BIGINT
+        filters.subDistrictId ? parseInt(filters.subDistrictId) : undefined, // subDistrictId is BIGINT
+        filters.dateStart || undefined,
+        filters.dateEnd || undefined,
+      );
+
+      console.log("📊 [History] Fetch result:", result);
+      return result;
+    },
+    enabled: !!session?.user?.id && !!userRole,
+  });
+
+  const stats = statsResponse?.success ? statsResponse.data : null;
+
+  console.log("🔍 [History] Stats Debug:", {
+    statsResponse,
+    statsSuccess: statsResponse?.success,
+    stats,
+    statsLoading,
+    statsError: statsResponse?.error,
+    showCondition: !!stats && !statsLoading,
   });
 
   // Infinite query for transactions
@@ -265,11 +316,22 @@ function _HistoryPageContent({
       </div>
 
       {/* Status Stats Grid */}
-      {stats && (
+      {console.log("📊 [Render] Stats condition:", {
+        stats,
+        statsLoading,
+        shouldRender: stats && !statsLoading,
+      })}
+      {stats && !statsLoading && (
         <TransactionStatsGrid
           stats={stats}
+          userRole={userRole}
           onStatusClick={handleStatusFilterClick}
         />
+      )}
+
+      {/* Stats Loading State */}
+      {statsLoading && (
+        <div className="mb-6 h-32 bg-slate-100 rounded-lg animate-pulse"></div>
       )}
 
       {/* Filter Section */}
@@ -386,6 +448,7 @@ function _HistoryPageContent({
 export default function HistoryPage() {
   const queryClient = useQueryClient();
   const permissions = usePermissions();
+  const userRole = useUserRole();
   const { data: session } = useSession();
   const { showToast } = useToast();
 
@@ -415,6 +478,7 @@ export default function HistoryPage() {
         setFilters={setFilters}
         error={error}
         setError={setError}
+        userRole={userRole}
       />
     </WorkflowProvider>
   );

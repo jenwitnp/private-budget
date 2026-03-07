@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { signOut, useSession } from "next-auth/react";
 import { hasPermission, UserRole } from "@/lib/auth/roles";
 import { menuItems, adminItems, type MenuItem } from "@/lib/config/menuItems";
-import { useTransactionStats } from "@/hooks/useTransactionStats";
+import { fetchTransactionStatsAction } from "@/actions/stats";
 import { fetchComplaintStatsAction } from "@/actions/complaints";
 
 interface MenuTileProps {
@@ -80,10 +81,21 @@ export function GridMenu({ onClose }: GridMenuProps) {
   const { data: session } = useSession();
   const userRole = session?.user?.role as UserRole;
 
-  // Fetch transaction stats to get pending count
-  const { data: stats } = useTransactionStats({});
+  // Fetch transaction stats using RPC with permission filtering
+  const { data: transactionStats } = useQuery({
+    queryKey: ["transaction-stats-menu", session?.user?.id, userRole],
+    queryFn: async () => {
+      if (!session?.user?.id || !userRole) return null;
+      const result = await fetchTransactionStatsAction(
+        session.user.id,
+        userRole,
+      );
+      return result.success ? result.data : null;
+    },
+    enabled: !!session?.user?.id && !!userRole,
+  });
 
-  // Fetch complaint stats to get pending count
+  // Fetch complaint stats (all users, no permission filtering)
   const [complaintStats, setComplaintStats] = useState<{
     pending: number;
   } | null>(null);
@@ -126,20 +138,25 @@ export function GridMenu({ onClose }: GridMenuProps) {
             เมนูหลัก
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {menuItems.map((item) => (
-              <MenuTile
-                key={item.href}
-                item={item}
-                isActive={router.pathname === item.href}
-                count={
-                  item.href === "/history"
-                    ? stats?.pending
-                    : item.href === "/complaints"
-                      ? complaintStats?.pending
-                      : undefined
-                }
-              />
-            ))}
+            {menuItems
+              .filter(
+                (item) =>
+                  !item.hideForRoles || !item.hideForRoles.includes(userRole),
+              )
+              .map((item) => (
+                <MenuTile
+                  key={item.href}
+                  item={item}
+                  isActive={router.pathname === item.href}
+                  count={
+                    item.href === "/history"
+                      ? transactionStats?.pending
+                      : item.href === "/complaints"
+                        ? complaintStats?.pending
+                        : undefined
+                  }
+                />
+              ))}
           </div>
         </div>
 
@@ -167,7 +184,7 @@ export function GridMenu({ onClose }: GridMenuProps) {
           <button
             onClick={handleLogout}
             className="w-full md:w-auto flex items-center justify-center gap-3 px-8 py-4 
-              bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-2xl
+              bg-linear-to-r from-red-500 to-red-600 text-white font-semibold rounded-2xl
               hover:shadow-lg hover:scale-105 transition-all duration-300"
           >
             <i className="fa-solid fa-right-from-bracket text-xl"></i>

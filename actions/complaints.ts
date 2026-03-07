@@ -91,7 +91,8 @@ export async function fetchComplaintDetailAction(complaintId: string) {
 }
 
 /**
- * Fetch complaint statistics
+ * Fetch complaint statistics (all users can see all complaints)
+ * No permission filtering - complaint data is shared across all users
  */
 export async function fetchComplaintStatsAction() {
   try {

@@ -1,4 +1,6 @@
 // Menu items configuration for the application
+import type { UserRole } from "@/lib/permissions/config";
+
 export const menuItems = [
   {
     href: "/dashboard",
@@ -7,6 +9,7 @@ export const menuItems = [
     icon: "fa-chart-pie",
     permission: "view_own_transactions",
     color: "from-blue-500 to-blue-600",
+    hideForRoles: ["user"] as UserRole[],
   },
   {
     href: "/history",
@@ -84,4 +87,5 @@ export interface MenuItem {
   icon: string;
   permission: string;
   color: string;
+  hideForRoles?: UserRole[];
 }

@@ -1,4 +1,6 @@
 import { Card } from "@/components/ui/Card";
+import { hasPermission } from "@/lib/permissions/utils";
+import type { UserRole } from "@/lib/permissions/config";
 
 interface TransactionStatsGridProps {
   stats: {
@@ -7,13 +9,27 @@ interface TransactionStatsGridProps {
     rejected: number;
     paid: number;
   };
+  userRole?: UserRole;
   onStatusClick: (status: string) => void;
 }
 
 export function TransactionStatsGrid({
   stats,
+  userRole,
   onStatusClick,
 }: TransactionStatsGridProps) {
+  // Check if user can view all transactions
+  const canViewAll = userRole
+    ? hasPermission(userRole, "view_all_transactions")
+    : true;
+  const scopeLabel = canViewAll ? "ทั้งหมด" : "ของคุณ";
+
+  console.log("📊 [TransactionStatsGrid] Rendering stats:", {
+    userRole,
+    canViewAll,
+    scopeLabel,
+    stats,
+  });
   const statusCards = [
     {
       key: "all",
@@ -54,19 +70,29 @@ export function TransactionStatsGrid({
   ];
 
   return (
-    <div
-      className="mb-6 overflow-x-auto"
-      style={
-        {
-          scrollbarWidth: "none",
-          msOverflowStyle: "none",
-        } as React.CSSProperties & {
-          scrollbarWidth: string;
-          msOverflowStyle: string;
+    <>
+      {/* Scope Indicator */}
+      <div className="mb-4 px-1">
+        <p className="text-sm text-slate-600 font-medium flex items-center gap-2">
+          <i className={`fa-solid ${canViewAll ? "fa-globe" : "fa-user"}`}></i>
+          {canViewAll ? "สถิติทั้งหมด" : "สถิติของคุณ"}
+        </p>
+      </div>
+
+      {/* Stats Grid */}
+      <div
+        className="mb-6 overflow-x-auto"
+        style={
+          {
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+          } as React.CSSProperties & {
+            scrollbarWidth: string;
+            msOverflowStyle: string;
+          }
         }
-      }
-    >
-      <style>{`
+      >
+        <style>{`
         div[class*="overflow-x-auto"] {
           -webkit-scrollbar: none;
         }
@@ -74,26 +100,29 @@ export function TransactionStatsGrid({
           display: none;
         }
       `}</style>
-      <div className="flex gap-3 md:gap-4 md:grid md:grid-cols-5 pt-1 pb-1 flex-nowrap">
-        {statusCards.map((card) => (
-          <Card
-            key={card.key}
-            className="text-center py-4 md:py-6 hover:shadow-md transition-shadow cursor-pointer flex-shrink-0"
-            // style={{ minWidth: "calc((100vw - 48px) / 4)" }}
-            onClick={() => onStatusClick(card.key)}
-          >
-            <div className="flex flex-col items-center gap-2">
-              <p className="text-xs md:text-sm text-slate-600 font-medium">
-                {card.label}
+        <div className="flex gap-3 md:gap-4 md:grid md:grid-cols-5 pt-1 pb-1 flex-nowrap">
+          {statusCards.map((card) => (
+            <Card
+              key={card.key}
+              className="text-center py-4 md:py-6 hover:shadow-md transition-shadow cursor-pointer shrink-0"
+              // style={{ minWidth: "calc((100vw - 48px) / 4)" }}
+              onClick={() => onStatusClick(card.key)}
+            >
+              <div className="flex flex-col items-center gap-2">
+                <p className="text-xs md:text-sm text-slate-600 font-medium">
+                  {card.label}
+                </p>
+              </div>
+              <p
+                className={`text-2xl md:text-3xl font-bold ${card.color} mt-2`}
+              >
+                {card.count}
               </p>
-            </div>
-            <p className={`text-2xl md:text-3xl font-bold ${card.color} mt-2`}>
-              {card.count}
-            </p>
-            <p className="text-xs text-slate-500 mt-1">รายการ</p>
-          </Card>
-        ))}
+              <p className="text-xs text-slate-500 mt-1">รายการ</p>
+            </Card>
+          ))}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

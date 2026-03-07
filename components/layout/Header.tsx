@@ -49,10 +49,10 @@ export function Header() {
       <header className="hidden md:flex items-center justify-between px-8 py-5 bg-white border-b border-slate-200">
         <h2 className="text-2xl font-bold text-slate-800">แดชบอร์ด</h2>
         <div className="flex items-center gap-6">
-          <button className="relative text-slate-400 hover:text-slate-600 transition-colors">
+          {/* <button className="relative text-slate-400 hover:text-slate-600 transition-colors">
             <i className="fa-solid fa-bell text-xl"></i>
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-          </button>
+          </button> */}
           <div className="relative">
             <button
               onClick={() => setShowDropdown(!showDropdown)}

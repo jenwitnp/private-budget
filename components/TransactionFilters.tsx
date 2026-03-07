@@ -243,7 +243,7 @@ export function TransactionFilters({
               <button
                 type="button"
                 onClick={handleSubmit}
-                className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm"
+                className="flex-1 px-4 py-2.5 bg-blue-950 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm"
               >
                 <i className="fas fa-search"></i>
                 ค้นหา
@@ -366,7 +366,7 @@ export function TransactionFilters({
             <button
               type="button"
               onClick={handleSubmit}
-              className="flex-1 md:flex-none px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm"
+              className="flex-1 md:flex-none px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm"
             >
               <i className="fas fa-search"></i>
               ค้นหา

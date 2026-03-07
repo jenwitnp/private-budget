@@ -45,11 +45,11 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {cards.map((card, idx) => (
         <div
           key={idx}
-          className={`bg-gradient-to-br ${card.color} rounded-2xl p-6 text-white shadow-lg`}
+          className={`bg-linear-to-br ${card.color} rounded-2xl p-6 text-white shadow-lg`}
         >
           <div className="flex items-start justify-between">
             <div>

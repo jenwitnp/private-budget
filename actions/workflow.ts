@@ -168,6 +168,8 @@ export async function payTransactionAction(
   userRole: string,
   bankReference?: string,
   netAmount?: string,
+  paymentMethod?: string,
+  bankAccountId?: string,
 ) {
   try {
     if (!userId) {
@@ -197,6 +199,10 @@ export async function payTransactionAction(
       bankReference,
       "\n├─ netAmount (received):",
       netAmount,
+      "\n├─ paymentMethod:",
+      paymentMethod,
+      "\n├─ bankAccountId:",
+      bankAccountId,
       "\n└─ netAmount type:",
       typeof netAmount,
     );
@@ -211,6 +217,8 @@ export async function payTransactionAction(
       userId,
       bankReference,
       netAmount,
+      paymentMethod,
+      bankAccountId,
     );
 
     console.log(

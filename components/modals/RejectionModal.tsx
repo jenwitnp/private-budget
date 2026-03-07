@@ -136,21 +136,6 @@ export function RejectionModal({
                     {error}
                   </div>
                 )}
-
-                <p className="text-sm text-slate-600 mb-4">
-                  คุณกำลังจะปฏิเสธรายการถอนเงินนี้ โปรดระบุเหตุผล
-                </p>
-
-                <Textarea
-                  label="เหตุผล"
-                  register={register("reason", {
-                    required: "กรุณาระบุเหตุผลในการปฏิเสธ",
-                  })}
-                  placeholder="ระบุเหตุผลในการปฏิเสธรายการ..."
-                  error={errors.reason}
-                  rows={3}
-                  required
-                />
               </div>
 
               {/* Action Buttons */}

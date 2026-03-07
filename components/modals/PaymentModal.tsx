@@ -13,9 +13,11 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { ClientTransaction } from "@/server/transactions.server";
 import { Modal } from "@/components/ui/Modal";
 import { CurrencyInput } from "@/components/form/CurrencyInput";
+import { Select } from "@/components/form/Select";
 import { TransactionDetailContent } from "@/components/TransactionDetailContent";
 import { payTransactionAction } from "@/actions/workflow";
 import { formatCurrency } from "@/lib/helpers/formatCurrency";
+import { useActiveBankAccounts } from "@/hooks/useBankAccounts";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -34,6 +36,8 @@ interface PaymentModalProps {
 
 interface PaymentFormData {
   net_amount?: string;
+  payment_method?: string;
+  bankAccountId?: string;
 }
 
 export function PaymentModal({
@@ -52,14 +56,25 @@ export function PaymentModal({
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<PaymentFormData>({
     defaultValues: {
       net_amount: "0.00",
+      payment_method: transaction?.payment_method || "",
+      bankAccountId: transaction?.bank_account_id || "",
     },
   });
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Get payment method from form
+  const paymentMethodValue = watch("payment_method");
+
+  // Fetch bank accounts for the user
+  const { data: bankAccounts, isLoading: bankAccountsLoading } =
+    useActiveBankAccounts(session?.user?.id || null);
 
   // Reset form when modal opens fresh
   useEffect(() => {
@@ -70,12 +85,20 @@ export function PaymentModal({
 
   // Set amount value when transaction loads (after form reset)
   useEffect(() => {
-    if (isOpen && transaction?.amount) {
-      const formattedAmount = formatCurrency(transaction.amount, 2);
-      console.log("[PaymentModal] Setting net_amount:", formattedAmount);
-      setValue("net_amount", formattedAmount);
+    if (isOpen && transaction) {
+      if (transaction.amount) {
+        const formattedAmount = formatCurrency(transaction.amount, 2);
+        console.log("[PaymentModal] Setting net_amount:", formattedAmount);
+        setValue("net_amount", formattedAmount);
+      }
+      if (transaction.payment_method) {
+        setValue("payment_method", transaction.payment_method);
+      }
+      if (transaction.bank_account_id) {
+        setValue("bankAccountId", transaction.bank_account_id);
+      }
     }
-  }, [isOpen, transaction?.amount, transaction, setValue]);
+  }, [isOpen, transaction, setValue]);
 
   const onSubmit = async (data: PaymentFormData) => {
     try {
@@ -99,6 +122,8 @@ export function PaymentModal({
         session.user.role || "",
         undefined, // bankReference (optional)
         cleanNetAmount, // Send cleaned value
+        data.payment_method, // Payment method
+        data.bankAccountId, // Bank account ID
       );
 
       // ✅ Update cache surgically (only this transaction re-renders)
@@ -187,6 +212,48 @@ export function PaymentModal({
                   prefix="฿"
                   decimalsLimit={2}
                 />
+
+                {/* Payment Method */}
+                <div className="mt-6 pt-6 border-t border-slate-200">
+                  <h4 className="text-sm font-bold text-slate-800 mb-4">
+                    <i className="fas fa-credit-card text-blue-600 mr-2"></i>
+                    เลือกวิธีการชำระเงิน
+                  </h4>
+
+                  <Select
+                    label="ประเภทการชำระ"
+                    register={register("payment_method")}
+                    error={errors.payment_method}
+                    options={[
+                      { value: "cash", label: "เงินสด" },
+                      { value: "transfer", label: "โอนเงิน" },
+                    ]}
+                    placeholder="-- เลือกประเภท --"
+                  />
+
+                  {/* Bank Account - Show only if transfer selected */}
+                  {paymentMethodValue === "transfer" && (
+                    <div className="mt-4">
+                      <Select
+                        label="บัญชีธนาคาร"
+                        register={register("bankAccountId")}
+                        error={errors.bankAccountId}
+                        options={
+                          bankAccounts?.map((account) => ({
+                            value: account.id,
+                            label: `${account.bank_name} - ${account.account_number}`,
+                          })) || []
+                        }
+                        placeholder={
+                          bankAccountsLoading
+                            ? "กำลังโหลด..."
+                            : "-- เลือกบัญชีธนาคาร --"
+                        }
+                        disabled={bankAccountsLoading}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Action Buttons */}

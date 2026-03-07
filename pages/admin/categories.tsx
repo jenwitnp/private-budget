@@ -138,7 +138,7 @@ export default function CategoriesPage() {
             {isLoading && (
               <div className="flex items-center justify-center py-16">
                 <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
                   <p className="text-slate-600">กำลังโหลดหมวดหมู่...</p>
                 </div>
               </div>
@@ -159,7 +159,7 @@ export default function CategoriesPage() {
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
                   <div>
                     <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
-                      <i className="fa-solid fa-list text-emerald-500"></i>
+                      <i className="fa-solid fa-list text-blue-500"></i>
                       จัดการหมวดหมู่
                     </h1>
                     <p className="text-slate-600 mt-1">
@@ -168,7 +168,7 @@ export default function CategoriesPage() {
                   </div>
                   <button
                     onClick={() => handleOpenModal()}
-                    className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                    className="bg-blue-900 hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
                   >
                     <i className="fa-solid fa-plus"></i>
                     <span className="hidden sm:inline">เพิ่มหมวดหมู่</span>
@@ -183,7 +183,7 @@ export default function CategoriesPage() {
                     placeholder="ค้นหาหมวดหมู่..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
 
@@ -217,7 +217,7 @@ export default function CategoriesPage() {
                           <span
                             className={`text-xs px-2 py-1 rounded-full ${
                               category.status === "active"
-                                ? "bg-emerald-100 text-emerald-700"
+                                ? "bg-blue-100 text-blue-700"
                                 : "bg-slate-100 text-slate-700"
                             }`}
                           >
@@ -307,7 +307,7 @@ export default function CategoriesPage() {
               {...register("description")}
               placeholder="เพิ่มคำอธิบาย..."
               rows={3}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
             />
           </div>
 
@@ -367,7 +367,7 @@ export default function CategoriesPage() {
             <button
               type="submit"
               disabled={createMutation.isPending || updateMutation.isPending}
-              className="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium disabled:opacity-50"
+              className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50"
             >
               {createMutation.isPending || updateMutation.isPending
                 ? "กำลังบันทึก..."
