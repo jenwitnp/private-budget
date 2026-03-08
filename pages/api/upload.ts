@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import sharp from "sharp";
 import { v4 as uuidv4 } from "uuid";
 import { Storage } from "@google-cloud/storage";
-import path from "path";
+import { getStorageOptions, validateGCPConfig } from "@/lib/gcp/credentials";
 
 interface UploadResponse {
   success: boolean;
@@ -33,26 +33,28 @@ export const config = {
 
 /**
  * Initialize Google Cloud Storage
+ * Supports both local development (file path) and production (base64 credentials)
  */
 function initializeGCS() {
-  const keyFile = process.env.GCP_KEY_FILE;
-  const projectId = process.env.GCP_PROJECT_ID;
+  const storageOptions = getStorageOptions();
 
-  if (!keyFile || !projectId) {
-    console.warn("[GCS] Missing GCP configuration");
+  if (!storageOptions) {
+    console.warn("[GCS] Failed to get storage options");
     return null;
   }
 
   try {
-    const keyPath = path.resolve(process.cwd(), keyFile);
-    console.log(`[GCS] Initializing with key file: ${keyPath}`);
-
-    return new Storage({
-      projectId,
-      keyFilename: keyPath,
+    console.log("[GCS] Initializing with:", {
+      projectId: storageOptions.projectId,
+      hasCredentials: !!storageOptions.credentials,
     });
+
+    return new Storage(storageOptions);
   } catch (error) {
-    console.error("[GCS] Failed to initialize:", error);
+    console.error(
+      "[GCS] Failed to initialize:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
     return null;
   }
 }
@@ -120,6 +122,16 @@ export default async function handler(
     return res
       .status(405)
       .json({ success: false, error: "Method not allowed" });
+  }
+
+  // Validate GCP configuration
+  const gcpConfig = validateGCPConfig();
+  if (!gcpConfig.valid) {
+    console.error("[GCS] Configuration errors:", gcpConfig.errors);
+    return res.status(500).json({
+      success: false,
+      error: "Server misconfiguration: " + gcpConfig.errors.join(", "),
+    });
   }
 
   try {
