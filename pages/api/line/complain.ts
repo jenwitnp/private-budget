@@ -225,8 +225,9 @@ async function processLineEvent(event: LineWebhookEvent): Promise<void> {
     let userId: string | null = null;
 
     try {
-      const { data: userResult, error: userError } = await supabase
-        .from("users")
+      const { data: userResult, error: userError } = await (
+        supabase.from("users") as any
+      )
         .select("id")
         .eq("line_user_id", lineUserId)
         .single();
@@ -261,8 +262,9 @@ async function processLineEvent(event: LineWebhookEvent): Promise<void> {
     });
 
     try {
-      const { data: insertedComplaint, error: insertError } = await supabase
-        .from("complaints")
+      const { data: insertedComplaint, error: insertError } = await (
+        supabase.from("complaints") as any
+      )
         .insert([
           {
             line_user_id: lineUserId,

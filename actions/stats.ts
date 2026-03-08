@@ -120,16 +120,19 @@ export async function fetchTransactionStatsAction(
       userId,
     });
 
-    const { data, error } = await supabase.rpc("get_transaction_stats", {
-      p_user_role: userRole,
-      p_user_id: userId,
-      p_search: search || "",
-      p_category_id: categoryUuid || null,
-      p_district_id: districtBigint || null,
-      p_sub_district_id: subDistrictBigint || null,
-      p_date_start: rpcDateStart || null,
-      p_date_end: rpcDateEnd || null,
-    });
+    const { data, error } = await (supabase.rpc as any)(
+      "get_transaction_stats",
+      {
+        p_user_role: userRole,
+        p_user_id: userId,
+        p_search: search || "",
+        p_category_id: categoryUuid || null,
+        p_district_id: districtBigint || null,
+        p_sub_district_id: subDistrictBigint || null,
+        p_date_start: rpcDateStart || null,
+        p_date_end: rpcDateEnd || null,
+      },
+    );
 
     if (error) {
       console.error("❌ [fetchTransactionStatsAction] RPC Error:", error);

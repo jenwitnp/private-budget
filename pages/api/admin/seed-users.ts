@@ -76,7 +76,9 @@ export default async function handler(
     }
 
     // Insert test users
-    const { data, error } = await supabase.from("users").insert(testUsers);
+    const { data, error } = await (supabase.from("users") as any).insert(
+      testUsers,
+    );
 
     if (error) {
       console.error("Supabase insert error:", error);

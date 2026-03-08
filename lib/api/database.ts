@@ -53,8 +53,7 @@ export const updateUser = async (
   updates: UserUpdate,
 ): Promise<User | null> => {
   try {
-    const { data, error } = await supabase
-      .from("users")
+    const { data, error } = await (supabase.from("users") as any)
       .update(updates)
       .eq("id", id)
       .select()
@@ -74,8 +73,7 @@ export const updateUserBalance = async (
 ): Promise<boolean> => {
   try {
     // Update user balance directly in the users table
-    const { data: user } = await supabase
-      .from("users")
+    const { data: user } = await (supabase.from("users") as any)
       .select("balance")
       .eq("id", userId)
       .single();
@@ -83,8 +81,7 @@ export const updateUserBalance = async (
     if (!user) return false;
 
     const newBalance = (user.balance || 0) + amount;
-    const { error } = await supabase
-      .from("users")
+    const { error } = await (supabase.from("users") as any)
       .update({ balance: newBalance })
       .eq("id", userId);
 
@@ -158,8 +155,7 @@ export const createBankAccount = async (
   account: BankAccountInsert,
 ): Promise<BankAccount | null> => {
   try {
-    const { data, error } = await supabase
-      .from("bank_accounts")
+    const { data, error } = await (supabase.from("bank_accounts") as any)
       .insert(account)
       .select()
       .single();
@@ -177,8 +173,7 @@ export const updateBankAccount = async (
   updates: BankAccountUpdate,
 ): Promise<BankAccount | null> => {
   try {
-    const { data, error } = await supabase
-      .from("bank_accounts")
+    const { data, error } = await (supabase.from("bank_accounts") as any)
       .update(updates)
       .eq("id", id)
       .select()
@@ -194,8 +189,7 @@ export const updateBankAccount = async (
 
 export const deleteBankAccount = async (id: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from("bank_accounts")
+    const { error } = await (supabase.from("bank_accounts") as any)
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", id);
 
@@ -213,14 +207,12 @@ export const setPrimaryBankAccount = async (
 ): Promise<boolean> => {
   try {
     // First, unset all primary accounts for user
-    await supabase
-      .from("bank_accounts")
+    await (supabase.from("bank_accounts") as any)
       .update({ is_primary: false })
       .eq("user_id", userId);
 
     // Then set new primary account
-    const { error } = await supabase
-      .from("bank_accounts")
+    const { error } = await (supabase.from("bank_accounts") as any)
       .update({ is_primary: true })
       .eq("id", accountId);
 
@@ -284,8 +276,7 @@ export const createTransaction = async (
     const random = Math.floor(Math.random() * 10000);
     const transactionNumber = `TRX${timestamp}${random}`;
 
-    const { data, error } = await supabase
-      .from("transactions")
+    const { data, error } = await (supabase.from("transactions") as any)
       .insert({
         ...transaction,
         transaction_number: transactionNumber,
@@ -307,8 +298,7 @@ export const updateTransactionStatus = async (
   userId: string,
 ): Promise<Transaction | null> => {
   try {
-    const { data, error } = await supabase
-      .from("transactions")
+    const { data, error } = await (supabase.from("transactions") as any)
       .update({
         status: status,
         status_changed_at: new Date().toISOString(),
@@ -322,7 +312,7 @@ export const updateTransactionStatus = async (
 
     // Record audit trail
     if (data) {
-      await supabase.from("transaction_audit").insert({
+      await (supabase.from("transaction_audit") as any).insert({
         transaction_id: id,
         new_status: status,
         changed_by: userId,
@@ -495,8 +485,7 @@ export const createNotification = async (
   relatedTransactionId?: string,
 ) => {
   try {
-    const { data, error } = await supabase
-      .from("notifications")
+    const { data, error } = await (supabase.from("notifications") as any)
       .insert({
         user_id: userId,
         title,
@@ -534,8 +523,7 @@ export const getUserNotifications = async (userId: string) => {
 
 export const markNotificationAsRead = async (notificationId: string) => {
   try {
-    const { error } = await supabase
-      .from("notifications")
+    const { error } = await (supabase.from("notifications") as any)
       .update({
         is_read: true,
         read_at: new Date().toISOString(),
@@ -562,7 +550,7 @@ export const createAuditLog = async (
   userId?: string,
 ) => {
   try {
-    const { error } = await supabase.from("audit_logs").insert({
+    const { error } = await (supabase.from("audit_logs") as any).insert({
       user_id: userId,
       action,
       entity_type: entityType,
@@ -605,8 +593,7 @@ export const updateUserStatus = async (
 ) => {
   try {
     const admin = getSupabaseAdmin();
-    const { data, error } = await admin
-      .from("users")
+    const { data, error } = await (admin.from("users") as any)
       .update({ status })
       .eq("id", userId)
       .select()

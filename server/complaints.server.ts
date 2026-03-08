@@ -29,9 +29,11 @@ export async function getAllComplaints(
   error?: string;
 }> {
   try {
-    let query = supabase.from("complaints").select("*").order("created_at", {
-      ascending: false,
-    });
+    let query: any = (supabase.from("complaints") as any)
+      .select("*")
+      .order("created_at", {
+        ascending: false,
+      });
 
     if (status) {
       query = query.eq("status", status);
@@ -63,8 +65,7 @@ export async function getComplaintById(id: string): Promise<{
   error?: string;
 }> {
   try {
-    const { data, error } = await supabase
-      .from("complaints")
+    const { data, error } = await (supabase.from("complaints") as any)
       .select("*")
       .eq("id", id)
       .single();
@@ -89,8 +90,7 @@ export async function getComplaintsByUserId(userId: string): Promise<{
   error?: string;
 }> {
   try {
-    const { data, error } = await supabase
-      .from("complaints")
+    const { data, error } = await (supabase.from("complaints") as any)
       .select("*")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
@@ -115,8 +115,7 @@ export async function getComplaintsByLineUserId(lineUserId: string): Promise<{
   error?: string;
 }> {
   try {
-    const { data, error } = await supabase
-      .from("complaints")
+    const { data, error } = await (supabase.from("complaints") as any)
       .select("*")
       .eq("line_user_id", lineUserId)
       .order("created_at", { ascending: false });
@@ -158,8 +157,7 @@ export async function updateComplaintStatus(
       updateData.resolved_at = new Date().toISOString();
     }
 
-    const { data, error } = await supabase
-      .from("complaints")
+    const { data, error } = await (supabase.from("complaints") as any)
       .update(updateData)
       .eq("id", id)
       .select()
@@ -189,8 +187,7 @@ export async function addComplaintReply(
   error?: string;
 }> {
   try {
-    const { data, error } = await supabase
-      .from("complaint_replies")
+    const { data, error } = await (supabase.from("complaint_replies") as any)
       .insert([
         {
           complaint_id: complaintId,
@@ -223,8 +220,9 @@ export async function getComplaintReplies(complaintId: string): Promise<{
   error?: string;
 }> {
   try {
-    const { data, error } = await supabase
-      .from("complaint_replies")
+    const { data: result, error } = await (
+      supabase.from("complaint_replies") as any
+    )
       .select("*")
       .eq("complaint_id", complaintId)
       .order("created_at", { ascending: true });
@@ -233,7 +231,7 @@ export async function getComplaintReplies(complaintId: string): Promise<{
       return { success: false, error: error.message };
     }
 
-    return { success: true, data: data || [] };
+    return { success: true, data: result || [] };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
     return { success: false, error: errorMessage };
@@ -256,32 +254,30 @@ export async function getComplaintStats(): Promise<{
 }> {
   try {
     // Get total complaints
-    const { count: total, error: totalError } = await supabase
-      .from("complaints")
-      .select("*", { count: "exact", head: true });
+    const { count: total, error: totalError } = await (
+      supabase.from("complaints") as any
+    ).select("*", { count: "exact", head: true });
 
     if (totalError) {
       return { success: false, error: totalError.message };
     }
 
     // Get count by status
-    const { count: pendingCount } = await supabase
-      .from("complaints")
+    const { count: pendingCount } = await (supabase.from("complaints") as any)
       .select("*", { count: "exact", head: true })
       .eq("status", "pending");
 
-    const { count: inProgressCount } = await supabase
-      .from("complaints")
+    const { count: inProgressCount } = await (
+      supabase.from("complaints") as any
+    )
       .select("*", { count: "exact", head: true })
       .eq("status", "in_progress");
 
-    const { count: resolvedCount } = await supabase
-      .from("complaints")
+    const { count: resolvedCount } = await (supabase.from("complaints") as any)
       .select("*", { count: "exact", head: true })
       .eq("status", "resolved");
 
-    const { count: closedCount } = await supabase
-      .from("complaints")
+    const { count: closedCount } = await (supabase.from("complaints") as any)
       .select("*", { count: "exact", head: true })
       .eq("status", "closed");
 

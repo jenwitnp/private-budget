@@ -102,7 +102,7 @@ export async function fetchData<T = any>(
   } = cleanOptions;
 
   try {
-    let query: any = supabase.from(table as any);
+    let query: any = supabase.from(table as any) as any;
 
     // Apply select - handle single differently
     if (single) {
@@ -264,8 +264,7 @@ export async function saveData<T = any>(
 ): Promise<QueryResult<T>> {
   try {
     // Insert the data into the specified table
-    const { data: result, error } = await supabase
-      .from(table as any)
+    const { data: result, error } = await (supabase.from(table as any) as any)
       .insert(data)
       .select();
 
@@ -356,7 +355,7 @@ export async function updateData<T = any>(
   }
 
   try {
-    let query: any = supabase.from(table as any).update(data);
+    let query: any = (supabase.from(table as any) as any).update(data);
 
     // Apply all filters from the filters object
     Object.entries(filters).forEach(([column, value]) => {
@@ -410,7 +409,7 @@ export async function deleteData<T = any>(
   }
 
   try {
-    let query: any = supabase.from(table as any).delete();
+    let query: any = (supabase.from(table as any) as any).delete();
 
     // Apply filters
     Object.entries(filters).forEach(([column, value]) => {

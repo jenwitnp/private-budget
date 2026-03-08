@@ -75,7 +75,9 @@ async function seedUsers() {
     }
 
     // Insert users
-    const { data, error } = await supabase.from("users").insert(testUsers);
+    const { data, error } = await (supabase.from("users") as any).insert(
+      testUsers,
+    );
 
     if (error) {
       console.error("❌ Error inserting users:", error);

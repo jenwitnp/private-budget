@@ -215,8 +215,9 @@ export async function createTransactionInSupabase(
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
     // Step 1: Insert transaction
-    const { data: transactionResult, error: transactionError } = await supabase
-      .from("transactions")
+    const { data: transactionResult, error: transactionError } = await (
+      supabase.from("transactions") as any
+    )
       .insert([transactionData as any])
       .select("id");
 
@@ -291,8 +292,9 @@ export async function createTransactionInSupabase(
 
       // Step 3: Update transaction thumbnail
       if (thumbnailUrl) {
-        const { error: updateError } = await supabase
-          .from("transactions")
+        const { error: updateError } = await (
+          supabase.from("transactions") as any
+        )
           .update({ thumbnail: thumbnailUrl } as any)
           .eq("id", transactionId);
 
