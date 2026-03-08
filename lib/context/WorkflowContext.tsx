@@ -40,6 +40,7 @@ interface WorkflowContextType {
     transactionId: string,
     newStatus: WorkflowStatus,
     displayAmount?: number,
+    updatedFields?: Partial<ClientTransaction>,
   ) => void;
   getTransactionDetail: (
     transactionId: string,
@@ -75,12 +76,13 @@ export function WorkflowProvider({
     transaction?: ClientTransaction | null;
   }>({ type: null, transactionId: null, transaction: null });
 
-  // ✅ Update specific transaction in cache (surgical update - only 1 card re-renders)
+  // ✅ Update specific transaction in cache with fresh data (surgical update - only 1 card re-renders)
   const updateTransactionInCache = useCallback(
     (
       transactionId: string,
       newStatus: WorkflowStatus,
       displayAmount?: number,
+      updatedFields?: Partial<ClientTransaction>,
     ) => {
       const queryKey = [
         "transactions",
@@ -102,7 +104,11 @@ export function WorkflowProvider({
                   const updatedTx = { ...tx, status: newStatus };
                   // If displayAmount is provided (from payment), update it
                   if (displayAmount !== undefined) {
-                    return { ...updatedTx, displayAmount };
+                    updatedTx.displayAmount = displayAmount;
+                  }
+                  // Merge any additional updated fields (approver name, paid name, payment method, etc.)
+                  if (updatedFields) {
+                    Object.assign(updatedTx, updatedFields);
                   }
                   return updatedTx;
                 }

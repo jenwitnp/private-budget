@@ -101,7 +101,7 @@ export async function getComplaintsByUserId(userId: string): Promise<{
 
     return { success: true, data: (data || []) as Complaint[] };
   } catch (err) {
-    const errorMessage = err instanceof Error ? error.message : "Unknown error";
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
     return { success: false, error: errorMessage };
   }
 }

@@ -18,6 +18,7 @@ import { TransactionDetailContent } from "@/components/TransactionDetailContent"
 import { payTransactionAction } from "@/actions/workflow";
 import { formatCurrency } from "@/lib/helpers/formatCurrency";
 import { useActiveBankAccounts } from "@/hooks/useBankAccounts";
+import { getTransactionDetailById } from "@/server/transactions.server";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ interface PaymentModalProps {
     transactionId: string,
     newStatus: "pending" | "approved" | "rejected" | "paid",
     displayAmount?: number,
+    updatedFields?: Partial<ClientTransaction>,
   ) => void;
   queryClient?: QueryClient;
 }
@@ -88,7 +90,6 @@ export function PaymentModal({
     if (isOpen && transaction) {
       if (transaction.amount) {
         const formattedAmount = formatCurrency(transaction.amount, 2);
-        console.log("[PaymentModal] Setting net_amount:", formattedAmount);
         setValue("net_amount", formattedAmount);
       }
       if (transaction.payment_method) {
@@ -126,13 +127,20 @@ export function PaymentModal({
         data.bankAccountId, // Bank account ID
       );
 
-      // ✅ Update cache surgically (only this transaction re-renders)
+      // ✅ Update cache surgically - Fetch fresh transaction data to get updated fields
       if (onTransactionUpdate) {
-        // Convert cleanNetAmount to number for displayAmount
+        // Fetch updated transaction to get fresh data (paidByName, payment_method, etc.)
+        const freshResult = await getTransactionDetailById(transactionId);
         const displayAmount = cleanNetAmount
           ? parseFloat(String(cleanNetAmount))
           : undefined;
-        onTransactionUpdate(transactionId, "paid", displayAmount);
+
+        // Update cache with new status and fresh data
+        onTransactionUpdate(transactionId, "paid", displayAmount, {
+          paidByName: freshResult?.data?.paid_by_name,
+          payment_method: freshResult?.data?.payment_method,
+          paymentMethod: freshResult?.data?.payment_method,
+        });
       } else if (queryClient) {
         // Fallback: invalidate if no update callback provided
         queryClient.invalidateQueries({ queryKey: ["transactions"] });

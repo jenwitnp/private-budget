@@ -15,6 +15,25 @@ export interface TransactionStatsResponse {
 }
 
 /**
+ * Convert Thai local date to ISO string with timezone offset (+07:00)
+ * Send timezone-aware ISO string directly to database
+ * Example: "2026-03-08T00:00:00+07:00" tells DB this is Thai local time
+ */
+function getThaiDateStart(localDateStr: string): string {
+  // Format: "2026-03-08T00:00:00+07:00"
+  return `${localDateStr}T00:00:00+07:00`;
+}
+
+/**
+ * Convert Thai local date to ISO string with timezone offset (+07:00) at end of day
+ * Example: "2026-03-08T23:59:59+07:00"
+ */
+function getThaiDateEnd(localDateStr: string): string {
+  // Format: "2026-03-08T23:59:59+07:00"
+  return `${localDateStr}T23:59:59+07:00`;
+}
+
+/**
  * Server action to fetch transaction statistics using RPC function
  * Includes permission validation with user context from client
  *
@@ -22,14 +41,17 @@ export interface TransactionStatsResponse {
  * - 'owner' and 'admin' roles: See all transactions
  * - 'user' role: See only their own transactions
  *
+ * ⚠️  CRITICAL: Date parameters are converted to UTC with timezone offset
+ * to match the transactions query behavior and database storage format.
+ *
  * @param userId - Current user's ID from session (UUID format)
  * @param userRole - Current user's role from session ('user', 'owner', 'admin')
  * @param search - Search term for transaction_number, description, notes
  * @param categoryId - Filter by category ID (UUID)
  * @param districtId - Filter by district ID (BIGINT)
  * @param subDistrictId - Filter by sub-district ID (BIGINT)
- * @param dateStart - Start date for filtering (ISO format)
- * @param dateEnd - End date for filtering (ISO format)
+ * @param dateStart - Start date for filtering (YYYY-MM-DD format, converted to UTC)
+ * @param dateEnd - End date for filtering (YYYY-MM-DD format, converted to UTC)
  */
 export async function fetchTransactionStatsAction(
   userId?: string,
@@ -69,13 +91,31 @@ export async function fetchTransactionStatsAction(
         : subDistrictId
       : null;
 
+    // ⚠️  CRITICAL: Convert Thai local dates to timezone-aware ISO strings
+    // Send as "2026-03-08T00:00:00+07:00" to let database handle timezone offset
+    let rpcDateStart: string | null = null;
+    let rpcDateEnd: string | null = null;
+
+    if (dateStart && dateEnd) {
+      // Date range query with timezone-aware ISO strings
+      rpcDateStart = getThaiDateStart(dateStart);
+      rpcDateEnd = getThaiDateEnd(dateEnd);
+    } else if (dateStart) {
+      // Single date: capture entire Thai local day
+      rpcDateStart = getThaiDateStart(dateStart);
+      rpcDateEnd = getThaiDateEnd(dateStart);
+    } else if (dateEnd) {
+      // Only end date
+      rpcDateEnd = getThaiDateEnd(dateEnd);
+    }
+
     console.log("📊 [fetchTransactionStatsAction] Calling RPC with filters:", {
       search,
       categoryId: categoryUuid,
       districtId: districtBigint,
       subDistrictId: subDistrictBigint,
-      dateStart,
-      dateEnd,
+      dateStart: rpcDateStart,
+      dateEnd: rpcDateEnd,
       userRole,
       userId,
     });
@@ -87,8 +127,8 @@ export async function fetchTransactionStatsAction(
       p_category_id: categoryUuid || null,
       p_district_id: districtBigint || null,
       p_sub_district_id: subDistrictBigint || null,
-      p_date_start: dateStart || null,
-      p_date_end: dateEnd || null,
+      p_date_start: rpcDateStart || null,
+      p_date_end: rpcDateEnd || null,
     });
 
     if (error) {

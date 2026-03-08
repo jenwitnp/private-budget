@@ -39,12 +39,12 @@ export function TransactionFilters({
     districtId || null,
   );
   // Build query string from filter state
-  const buildQueryString = () => {
+  const buildQueryString = (overrideDateEnd?: string) => {
     const filterObject = {
       searchTerm,
       statusFilter,
       dateStart,
-      dateEnd,
+      dateEnd: overrideDateEnd || dateEnd,
       categoryId,
       districtId,
       subDistrictId,
@@ -57,7 +57,12 @@ export function TransactionFilters({
   };
 
   const handleSubmit = () => {
-    const queryString = buildQueryString();
+    // 🎯 UX Fix: Auto-fill end date with start date for single-day filtering
+    // When user picks only start date, query shows ONLY that day's data
+    // Example: Pick "8/3/2569" → system queries 8/3/2569 00:00 to 8/3/2569 23:59
+    const finalDateEnd = dateEnd || dateStart;
+
+    const queryString = buildQueryString(finalDateEnd);
     const fullUrl = queryString ? `/history?${queryString}` : "/history";
 
     console.group("📋 Query URL - Internal Test");
@@ -75,7 +80,7 @@ export function TransactionFilters({
       searchTerm,
       statusFilter,
       dateStart,
-      dateEnd,
+      dateEnd: finalDateEnd,
       categoryId,
       districtId,
       subDistrictId,

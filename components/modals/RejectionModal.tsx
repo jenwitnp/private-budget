@@ -15,6 +15,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Textarea } from "@/components/form/Textarea";
 import { TransactionDetailContent } from "@/components/TransactionDetailContent";
 import { rejectTransactionAction } from "@/actions/workflow";
+import { getTransactionDetailById } from "@/server/transactions.server";
 
 interface RejectionModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ interface RejectionModalProps {
     transactionId: string,
     newStatus: "pending" | "approved" | "rejected" | "paid",
     displayAmount?: number,
+    updatedFields?: Partial<ClientTransaction>,
   ) => void;
   queryClient?: QueryClient;
 }
@@ -78,9 +80,15 @@ export function RejectionModal({
         data.reason,
       );
 
-      // ✅ Update cache surgically (only this transaction re-renders)
+      // ✅ Update cache surgically - Fetch fresh transaction data to get updated fields
       if (onTransactionUpdate) {
-        onTransactionUpdate(transactionId, "rejected");
+        // Fetch updated transaction to get fresh data (rejectedByName, etc.)
+        const freshResult = await getTransactionDetailById(transactionId);
+
+        // Update cache with new status and fresh data
+        onTransactionUpdate(transactionId, "rejected", undefined, {
+          rejectedByName: freshResult?.data?.rejected_by_name,
+        });
       } else if (queryClient) {
         // Fallback: invalidate if no update callback provided
         queryClient.invalidateQueries({ queryKey: ["transactions"] });

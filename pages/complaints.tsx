@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import type { InfiniteData } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
 import { Card } from "@/components/ui/Card";
@@ -44,6 +44,7 @@ interface ComplaintResponse {
 
 export default function ComplaintsPage() {
   const { data: session } = useSession();
+  const queryClient = useQueryClient();
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   // State
@@ -165,11 +166,32 @@ export default function ComplaintsPage() {
       );
 
       if (result.success) {
-        setComplaints((prev) =>
-          prev.map((c) =>
-            c.id === complaintId ? { ...c, status: newStatus as any } : c,
-          ),
+        // Update cache with new status (surgical update - only affected complaints update)
+        const queryKey = [
+          "complaints",
+          session?.user?.id,
+          filterStatus,
+          filterCategory,
+        ];
+        queryClient.setQueryData(
+          queryKey,
+          (oldData: InfiniteData<ComplaintResponse> | undefined) => {
+            if (!oldData) return oldData;
+
+            return {
+              ...oldData,
+              pages: oldData.pages.map((page) => ({
+                ...page,
+                data: page.data.map((complaint) =>
+                  complaint.id === complaintId
+                    ? { ...complaint, status: newStatus as any }
+                    : complaint,
+                ),
+              })),
+            };
+          },
         );
+
         if (selectedComplaint?.id === complaintId) {
           setSelectedComplaint({
             ...selectedComplaint,

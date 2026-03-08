@@ -40,6 +40,7 @@ export interface ClientTransaction {
   userId?: string;
   createdByName?: string;
   approvedByName?: string;
+  rejectedByName?: string;
   paidByName?: string;
   paymentMethod?: string;
   payment_method?: string;
@@ -330,16 +331,6 @@ export async function getTransactionDetailById(id: string): Promise<{
     if (!data) {
       throw new Error("Transaction not found");
     }
-
-    console.group("🔍 [SERVER] Transaction Detail by ID");
-    console.log("Transaction ID:", id);
-    console.log("Found fields:", Object.keys(data).sort());
-    console.log("created_by_name:", data.created_by_name);
-    console.log("approved_by_name:", data.approved_by_name);
-    console.log("paid_by_name:", data.paid_by_name);
-    console.log("category_name:", data.category_name);
-    console.log("district_name:", data.district_name);
-    console.groupEnd();
 
     return {
       success: true,

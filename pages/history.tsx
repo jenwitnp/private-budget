@@ -316,11 +316,6 @@ function _HistoryPageContent({
       </div>
 
       {/* Status Stats Grid */}
-      {console.log("📊 [Render] Stats condition:", {
-        stats,
-        statsLoading,
-        shouldRender: stats && !statsLoading,
-      })}
       {stats && !statsLoading && (
         <TransactionStatsGrid
           stats={stats}

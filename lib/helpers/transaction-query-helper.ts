@@ -52,7 +52,7 @@ export function parseTransactionFiltersFromQuery(
  * Build API filters from UI filter state
  * Maps UI filters to database column names and operators
  * ⚠️ CRITICAL: Handles timezone offset for Thailand (UTC+7)
- * 
+ *
  * When user picks date in Thai timezone, we must convert to UTC bounds
  * since database stores timestamps in UTC.
  */
@@ -72,25 +72,17 @@ export function buildApiFilters(
   const gte: Record<string, any> = {};
   const lte: Record<string, any> = {};
 
-  // 🕐 Convert Thai local date to UTC datetime bounds
-  // Thailand is UTC+7, so local midnight is UTC-7 hours
-  // Local 2026-02-27 00:00:00 = UTC 2026-02-26 17:00:00
-  const getUTCStartOfDay = (localDateStr: string): string => {
-    const [year, month, day] = localDateStr.split("-").map(Number);
-    // Create local date at 00:00
-    const localDate = new Date(year, month - 1, day, 0, 0, 0);
-    // Subtract 7 hours to get UTC equivalent
-    const utcDate = new Date(localDate.getTime() - 7 * 60 * 60 * 1000);
-    return utcDate.toISOString().replace("Z", "");
+  // 🕐 Convert Thai local date to ISO string with timezone offset (+07:00)
+  // Send timezone-aware ISO string directly to database
+  // Example: "2026-03-08T00:00:00+07:00" tells DB this is Thai local time
+  const getThaiDateStart = (localDateStr: string): string => {
+    // Format: "2026-03-08T00:00:00+07:00"
+    return `${localDateStr}T00:00:00+07:00`;
   };
 
-  const getUTCEndOfDay = (localDateStr: string): string => {
-    const [year, month, day] = localDateStr.split("-").map(Number);
-    // Create next day at 00:00 local time
-    const nextDayLocal = new Date(year, month - 1, day + 1, 0, 0, 0);
-    // Subtract 7 hours to get UTC equivalent
-    const utcDate = new Date(nextDayLocal.getTime() - 7 * 60 * 60 * 1000);
-    return utcDate.toISOString().replace("Z", "");
+  const getThaiDateEnd = (localDateStr: string): string => {
+    // Format: "2026-03-08T23:59:59+07:00"
+    return `${localDateStr}T23:59:59+07:00`;
   };
 
   // Add status filter
@@ -98,18 +90,18 @@ export function buildApiFilters(
     apiFilters.status = filters.statusFilter;
   }
 
-  // Add date range filters with timezone conversion
+  // Add date range filters with timezone-aware ISO strings
   if (filters.dateStart && filters.dateEnd) {
-    // Date range query with UTC conversion
-    gte[dateColumn] = getUTCStartOfDay(filters.dateStart);
-    lte[dateColumn] = getUTCEndOfDay(filters.dateEnd);
+    // Date range query with timezone offset
+    gte[dateColumn] = getThaiDateStart(filters.dateStart);
+    lte[dateColumn] = getThaiDateEnd(filters.dateEnd);
   } else if (filters.dateStart) {
-    // Single date: capture entire Thai local day in UTC bounds
-    gte[dateColumn] = getUTCStartOfDay(filters.dateStart);
-    lte[dateColumn] = getUTCEndOfDay(filters.dateStart);
+    // Single date: capture entire Thai local day
+    gte[dateColumn] = getThaiDateStart(filters.dateStart);
+    lte[dateColumn] = getThaiDateEnd(filters.dateStart);
   } else if (filters.dateEnd) {
     // Only end date
-    lte[dateColumn] = getUTCEndOfDay(filters.dateEnd);
+    lte[dateColumn] = getThaiDateEnd(filters.dateEnd);
   }
 
   // Add other filters
