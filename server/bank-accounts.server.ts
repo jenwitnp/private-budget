@@ -35,22 +35,38 @@ export interface CreateBankAccountInput {
 
 /**
  * Get all bank accounts for current user
+ * Owner/Admin can see all accounts, User sees only their own
  */
-export async function getBankAccounts(userId: string): Promise<{
+export async function getBankAccounts(
+  userId: string,
+  userRole?: "user" | "owner" | "admin",
+): Promise<{
   success: boolean;
   data?: BankAccount[];
   error?: string;
 }> {
   try {
-    console.log("📋 [BANK_ACCOUNTS] Fetching accounts for user:", userId);
+    console.log(
+      "📋 [BANK_ACCOUNTS] Fetching accounts for user:",
+      userId,
+      "role:",
+      userRole,
+    );
 
-    const { data, error } = await (supabase as any)
+    let query = (supabase as any)
       .from("bank_accounts")
       .select("*")
-      .eq("user_id", userId)
       .is("deleted_at", null)
       .order("is_primary", { ascending: false })
       .order("created_at", { ascending: false });
+
+    // If user role is 'user', only show their own accounts
+    // Owner and admin can see all accounts
+    if (userRole === "user") {
+      query = query.eq("user_id", userId);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error("❌ [BANK_ACCOUNTS] Fetch error:", error.message);
@@ -68,24 +84,35 @@ export async function getBankAccounts(userId: string): Promise<{
 
 /**
  * Get active bank accounts for current user (for dropdown/select)
+ * Owner/Admin can see all accounts, User sees only their own
  */
 export async function getActiveBankAccounts(
   userId: string,
+  userRole?: "user" | "owner" | "admin",
 ): Promise<BankAccount[]> {
   try {
     console.log(
       "📋 [BANK_ACCOUNTS] Fetching active accounts for user:",
       userId,
+      "role:",
+      userRole,
     );
 
-    const { data, error } = await (supabase as any)
+    let query = (supabase as any)
       .from("bank_accounts")
       .select("*")
-      .eq("user_id", userId)
       .eq("is_active", true)
       .is("deleted_at", null)
       .order("is_primary", { ascending: false })
       .order("created_at", { ascending: false });
+
+    // If user role is 'user', only show their own accounts
+    // Owner and admin can see all accounts
+    if (userRole === "user") {
+      query = query.eq("user_id", userId);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error("❌ [BANK_ACCOUNTS] Fetch error:", error.message);

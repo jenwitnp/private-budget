@@ -65,30 +65,11 @@ export function TransactionFilters({
     const queryString = buildQueryString(finalDateEnd);
     const fullUrl = queryString ? `/history?${queryString}` : "/history";
 
-    console.group("📋 Query URL - Internal Test");
-    console.log(
-      "%cQuery String:",
-      "color: #f59e0b; font-weight: bold; font-size: 14px;",
-      queryString || "(no filters)",
-    );
-    console.log(
-      "%cFull URL:",
-      "color: #06b6d4; font-weight: bold; font-size: 14px;",
-      fullUrl,
-    );
-    console.log("%cFilter Object:", "color: #10b981; font-weight: bold;", {
-      searchTerm,
-      statusFilter,
-      dateStart,
-      dateEnd: finalDateEnd,
-      categoryId,
-      districtId,
-      subDistrictId,
-    });
-    console.groupEnd();
-
     // Navigate to the URL with filters
     router.push(fullUrl);
+
+    // Close mobile filter panel after submit
+    setIsFiltersExpanded(false);
   };
 
   const handleClearFilters = () => {
@@ -100,8 +81,10 @@ export function TransactionFilters({
     setDistrictId("");
     setSubDistrictId("");
 
-    console.log("🧹 [TransactionFilters] All filters cleared");
     router.push("/history");
+
+    // Close mobile filter panel after clear
+    setIsFiltersExpanded(false);
   };
 
   return (

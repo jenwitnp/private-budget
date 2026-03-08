@@ -266,17 +266,28 @@ function _HistoryPageContent({
     try {
       setIsWithdrawModalOpen(false);
 
-      // Invalidate transaction queries to trigger refetch
-      // This will show the new transaction card without full page reload
+      // ✅ Invalidate with precise query key matching current filters
+      // This ensures the new transaction is fetched with correct parameters
+      const transactionQueryKey = [
+        "transactions",
+        session?.user?.id,
+        JSON.stringify(filters),
+      ];
+
       await queryClient.invalidateQueries({
-        queryKey: ["transactions"],
-        exact: false,
+        queryKey: transactionQueryKey,
+        exact: true,
       });
 
-      // Also invalidate stats to update the counter
+      // Also invalidate stats to update the counter (include userRole for consistency)
       await queryClient.invalidateQueries({
-        queryKey: ["transaction-stats"],
-        exact: false,
+        queryKey: [
+          "transaction-stats",
+          session?.user?.id,
+          userRole,
+          JSON.stringify(filters),
+        ],
+        exact: true,
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Error";

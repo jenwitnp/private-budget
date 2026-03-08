@@ -15,13 +15,18 @@ const QUERY_KEY = ["bankAccounts"];
 
 /**
  * Get all bank accounts for current user
+ * Owner/Admin can see all accounts, User sees only their own
  */
-export function useBankAccounts(userId: string | null, options = {}) {
+export function useBankAccounts(
+  userId: string | null,
+  userRole?: "user" | "owner" | "admin",
+  options = {},
+) {
   return useQuery({
-    queryKey: [...QUERY_KEY, userId],
+    queryKey: [...QUERY_KEY, userId, userRole],
     queryFn: async () => {
       if (!userId) throw new Error("User ID required");
-      const result = await getBankAccounts(userId);
+      const result = await getBankAccounts(userId, userRole);
       if (!result.success) throw new Error(result.error);
       return result.data || [];
     },
@@ -34,13 +39,17 @@ export function useBankAccounts(userId: string | null, options = {}) {
 
 /**
  * Get active bank accounts for current user (for dropdown/select)
+ * Owner/Admin can see all accounts, User sees only their own
  */
-export function useActiveBankAccounts(userId: string | null) {
+export function useActiveBankAccounts(
+  userId: string | null,
+  userRole?: "user" | "owner" | "admin",
+) {
   return useQuery({
-    queryKey: [...QUERY_KEY, userId, "active"],
+    queryKey: [...QUERY_KEY, userId, "active", userRole],
     queryFn: async () => {
       if (!userId) throw new Error("User ID required");
-      return await getActiveBankAccounts(userId);
+      return await getActiveBankAccounts(userId, userRole);
     },
     enabled: !!userId,
     staleTime: 5 * 60 * 1000, // 5 minutes

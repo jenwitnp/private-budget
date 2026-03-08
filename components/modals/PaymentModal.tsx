@@ -55,6 +55,10 @@ export function PaymentModal({
 }: PaymentModalProps) {
   const { data: session } = useSession();
   const { showToast } = useAppToast();
+  const userRole = (session?.user?.role || "user") as
+    | "user"
+    | "owner"
+    | "admin";
   const {
     register,
     handleSubmit,
@@ -78,7 +82,7 @@ export function PaymentModal({
 
   // Fetch bank accounts for the user
   const { data: bankAccounts, isLoading: bankAccountsLoading } =
-    useActiveBankAccounts(session?.user?.id || null);
+    useActiveBankAccounts(session?.user?.id || null, userRole);
 
   // Reset form when modal opens fresh
   useEffect(() => {

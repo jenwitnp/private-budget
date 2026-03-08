@@ -84,6 +84,7 @@ export function WorkflowProvider({
       displayAmount?: number,
       updatedFields?: Partial<ClientTransaction>,
     ) => {
+      const userRole = (session?.user?.role || "user") as "user" | "owner" | "admin";
       const queryKey = [
         "transactions",
         session?.user?.id,
