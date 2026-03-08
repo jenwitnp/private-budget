@@ -22,7 +22,7 @@ export function Header() {
     "ผู้ใช้";
 
   const handleLogout = async () => {
-    await signOut({ callbackUrl: "/login" });
+    await signOut({ callbackUrl: "/auth/login" });
   };
 
   return (
@@ -121,7 +121,7 @@ export function Header() {
           onClick={() => setShowMobileMenu(false)}
         >
           <div
-            className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pt-4 pb-8 px-4"
+            className="min-h-screen bg-linear-to-br from-slate-50 to-slate-100 pt-4 pb-8 px-4"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
