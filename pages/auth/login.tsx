@@ -24,8 +24,8 @@ export default function LoginPage() {
     formState: { errors },
   } = useForm<LoginFormData>({
     defaultValues: {
-      username: "owner",
-      password: "password123",
+      username: "",
+      password: "",
     },
   });
 
