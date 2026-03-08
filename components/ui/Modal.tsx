@@ -50,20 +50,20 @@ export function Modal({
       />
 
       {/* Modal Container */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 pointer-events-none overflow-hidden">
         <div
-          className={`bg-white rounded-2xl shadow-xl ${sizeClasses[size]} w-full max-h-screen overflow-visible flex flex-col pointer-events-auto`}
+          className={`bg-white rounded-2xl shadow-xl ${sizeClasses[size]} w-full max-h-[85vh] sm:max-h-[90vh] overflow-visible flex flex-col pointer-events-auto`}
         >
           {/* Modal Header */}
-          <div className="flex items-center justify-between p-6 border-b border-slate-100 sticky top-0 bg-white z-10">
-            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+          <div className="flex items-center justify-between p-4 sm:p-6 pb-2 pt-2 border-b border-slate-100 sticky top-0 bg-white z-10 flex-shrink-0">
+            <h2 className="text-lg sm:text-xl font-bold text-slate-800 flex items-center gap-2">
               {icon && <i className={`fa-solid ${icon} text-emerald-500`}></i>}
               {title}
             </h2>
             <button
               onClick={onClose}
               disabled={isLoading}
-              className={`text-slate-400 text-2xl leading-none transition-colors ${
+              className={`text-slate-400 text-2xl leading-none transition-colors flex-shrink-0 ${
                 isLoading
                   ? "cursor-not-allowed opacity-50"
                   : "hover:text-slate-600 cursor-pointer"
@@ -74,7 +74,9 @@ export function Modal({
           </div>
 
           {/* Modal Content */}
-          <div className="overflow-y-auto flex-1">{children}</div>
+          <div className="overflow-y-auto flex-1 px-4 sm:px-6 py-4 sm:py-6 pb-20 sm:pb-6">
+            {children}
+          </div>
         </div>
       </div>
     </>
