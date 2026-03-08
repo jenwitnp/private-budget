@@ -1,0 +1,211 @@
+/\*\*
+
+- Global Toast System Documentation
+-
+- The app now has a global toast provider that displays success/error/info messages
+- from any component or form, without requiring local state management.
+-
+- ============================================================================
+- SETUP
+- ============================================================================
+-
+- The ToastProvider is already integrated in AppProviders.tsx, so it's available
+- globally throughout the app.
+-
+- ============================================================================
+- BASIC USAGE
+- ============================================================================
+-
+- 1.  Import the hook:
+- import { useAppToast } from "@/hooks/useAppToast";
+-
+- 2.  Use in your component:
+- const { showToast } = useAppToast();
+-
+- 3.  Show message on form submission:
+- const handleSubmit = async (data) => {
+-      try {
+-        const result = await saveData(data);
+-        showToast("Data saved successfully!", "success");
+-      } catch (error) {
+-        showToast("Failed to save data", "error");
+-      }
+- };
+-
+- ============================================================================
+- API REFERENCE
+- ============================================================================
+-
+- showToast(message, type?, duration?)
+-
+- Parameters:
+- - message (string, required): The message to display
+- - type (string, optional): "success" | "error" | "info" (default: "info")
+- - duration (number, optional): How long to show in milliseconds (default: 4000)
+-
+- Returns: toast id (string) - can be used to programmatically remove the toast
+-
+- Example:
+- const toastId = showToast("Saving...", "info", 0); // 0 = never auto-dismiss
+- await saveData();
+- removeToast(toastId);
+- showToast("Done!", "success");
+-
+- ============================================================================
+- FORM SUBMISSION PATTERN
+- ============================================================================
+-
+- Pattern 1: Simple form submission
+-
+- export function MyForm() {
+- const { register, handleSubmit } = useForm();
+- const { showToast } = useAppToast();
+-
+- const onSubmit = async (data) => {
+-     try {
+-       await saveFormData(data);
+-       showToast("Saved successfully!", "success");
+-     } catch (error) {
+-       const msg = error instanceof Error ? error.message : "Failed to save";
+-       showToast(msg, "error");
+-     }
+- };
+-
+- return (
+-     <form onSubmit={handleSubmit(onSubmit)}>
+-       {/* form fields */}
+-       <button type="submit">Save</button>
+-     </form>
+- );
+- }
+-
+- Pattern 2: With loading state
+-
+- export function MyForm() {
+- const [isLoading, setIsLoading] = useState(false);
+- const { showToast } = useAppToast();
+-
+- const onSubmit = async (data) => {
+-     setIsLoading(true);
+-     try {
+-       await saveFormData(data);
+-       showToast("Saved successfully!", "success");
+-     } catch (error) {
+-       showToast("Failed to save", "error");
+-     } finally {
+-       setIsLoading(false);
+-     }
+- };
+-
+- return (
+-     <form onSubmit={handleSubmit(onSubmit)}>
+-       <button type="submit" disabled={isLoading}>
+-         {isLoading ? "Saving..." : "Save"}
+-       </button>
+-     </form>
+- );
+- }
+-
+- Pattern 3: With React Query (recommended for server actions)
+-
+- export function MyForm() {
+- const { showToast } = useAppToast();
+- const mutation = useMutation({
+-     mutationFn: (data) => saveFormData(data),
+-     onSuccess: () => {
+-       showToast("Saved successfully!", "success");
+-     },
+-     onError: (error) => {
+-       showToast(error.message || "Failed to save", "error");
+-     },
+- });
+-
+- const onSubmit = (data) => {
+-     mutation.mutate(data);
+- };
+-
+- return (
+-     <form onSubmit={handleSubmit(onSubmit)}>
+-       <button type="submit" disabled={mutation.isPending}>
+-         {mutation.isPending ? "Saving..." : "Save"}
+-       </button>
+-     </form>
+- );
+- }
+-
+- ============================================================================
+- COMMON PATTERNS FOR YOUR APP
+- ============================================================================
+-
+- 1.  Bank Account Form (pages/accounts.tsx):
+-
+- const onSubmit = async (data: FormData) => {
+-     try {
+-       const input = { /* ... */ };
+-       if (editingId) {
+-         await updateMutation.mutateAsync({ id: editingId, input });
+-         showToast("Account updated successfully!", "success");
+-       } else {
+-         await createMutation.mutateAsync(input);
+-         showToast("Account added successfully!", "success");
+-       }
+-       handleCloseModal();
+-     } catch (err) {
+-       showToast(
+-         err instanceof Error ? err.message : "Failed to save account",
+-         "error"
+-       );
+-     }
+- };
+-
+- 2.  Settings Form (pages/settings.tsx):
+-
+- const onSettingsSubmit = async (data: SettingsFormData) => {
+-     try {
+-       await updateMutation.mutateAsync(data);
+-       await updateSession();
+-       showToast("Settings updated successfully!", "success");
+-     } catch (err) {
+-       showToast("Failed to update settings", "error");
+-     }
+- };
+-
+- 3.  Delete Operation:
+-
+- const handleDelete = async (id: string) => {
+-     if (!confirm("Are you sure?")) return;
+-     try {
+-       await deleteMutation.mutateAsync(id);
+-       showToast("Deleted successfully!", "success");
+-     } catch (err) {
+-       showToast("Failed to delete", "error");
+-     }
+- };
+-
+- ============================================================================
+- MIGRATION FROM LOCAL useToast HOOK
+- ============================================================================
+-
+- The old useToast() hook is still available but deprecated.
+- To migrate pages to use the global toast:
+-
+- Before:
+- const { toasts, removeToast } = useToast();
+- return (
+-     <>
+-       <ToastContainer toasts={toasts} onRemove={removeToast} />
+-       <form>...</form>
+-     </>
+- );
+-
+- After:
+- const { showToast } = useAppToast();
+- return (
+-     <form>...</form>
+- );
+- // GlobalToastContainer is already rendered globally
+-
+- ============================================================================
+  \*/
+
+// This file is for documentation only. No code exports.

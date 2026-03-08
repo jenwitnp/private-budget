@@ -1,0 +1,218 @@
+/\*\*
+
+- TOAST PROVIDER IMPLEMENTATION GUIDE
+- ====================================
+-
+- A global toast notification system has been implemented for the app.
+- This allows any component to show success/error messages without local state.
+-
+- FILES CREATED:
+- ✅ lib/providers/contexts/ToastContext.tsx - Global toast context
+- ✅ hooks/useAppToast.ts - Hook to access toast from any component
+- ✅ hooks/useFormWithToast.ts - Helper hook for form submission handling
+- ✅ lib/providers/GlobalToastContainer.tsx - Renders toasts globally
+-
+- INTEGRATION:
+- ✅ ToastProvider added to AppProviders.tsx
+- ✅ GlobalToastContainer added to app layout
+- ✅ Build successfully compiles
+-
+- ====================================
+- QUICK START EXAMPLES
+- ====================================
+-
+- 1.  SIMPLE FORM WITH GLOBAL TOAST
+- ====================================
+-
+- import { useForm } from "react-hook-form";
+- import { useAppToast } from "@/hooks/useAppToast";
+- import { saveUserSettings } from "@/actions/settings";
+-
+- export function SettingsForm() {
+- const { register, handleSubmit } = useForm();
+- const { showToast } = useAppToast();
+-
+- const onSubmit = async (data) => {
+-     try {
+-       await saveUserSettings(data);
+-       showToast("Settings saved successfully!", "success");
+-     } catch (error) {
+-       showToast("Failed to save settings", "error");
+-     }
+- };
+-
+- return (
+-     <form onSubmit={handleSubmit(onSubmit)}>
+-       <input {...register("name")} />
+-       <button type="submit">Save</button>
+-       {/* NO NEED FOR ToastContainer - it's global! */}
+-     </form>
+- );
+- }
+-
+-
+- 2.  WITH REACT QUERY MUTATION
+- ====================================
+-
+- import { useMutation } from "@tanstack/react-query";
+- import { useAppToast } from "@/hooks/useAppToast";
+-
+- export function BankAccountForm() {
+- const { showToast } = useAppToast();
+- const createMutation = useMutation({
+-     mutationFn: (data) => createBankAccountAction(data),
+-     onSuccess: () => {
+-       showToast("Bank account added successfully!", "success");
+-       // Optionally close modal, reset form, etc.
+-     },
+-     onError: (error) => {
+-       showToast(
+-         error instanceof Error ? error.message : "Failed to add account",
+-         "error"
+-       );
+-     },
+- });
+-
+- return (
+-     <form onSubmit={(e) => {
+-       e.preventDefault();
+-       createMutation.mutate(formData);
+-     }}>
+-       {/* form fields */}
+-       <button type="submit" disabled={createMutation.isPending}>
+-         {createMutation.isPending ? "Saving..." : "Add Account"}
+-       </button>
+-     </form>
+- );
+- }
+-
+-
+- 3.  USING THE HELPER HOOK
+- ====================================
+-
+- import { useFormWithToast } from "@/hooks/useFormWithToast";
+-
+- export function UpdateProfileForm() {
+- const { handleSubmit } = useFormWithToast(
+-     (data) => updateProfileAction(data),
+-     "Profile updated!",
+-     (err) => `Error: ${err.message}`
+- );
+-
+- return (
+-     <form onSubmit={async (e) => {
+-       e.preventDefault();
+-       try {
+-         await handleSubmit(formData);
+-       } catch (err) {
+-         // Error already shown as toast
+-       }
+-     }}>
+-       {/* form fields */}
+-     </form>
+- );
+- }
+-
+-
+- 4.  DELETE CONFIRMATION WITH TOAST
+- ====================================
+-
+- const { showToast } = useAppToast();
+-
+- const handleDelete = async (id) => {
+- if (!confirm("Delete this item?")) return;
+- try {
+-     await deleteItemAction(id);
+-     showToast("Item deleted successfully!", "success");
+- } catch (error) {
+-     showToast("Failed to delete item", "error");
+- }
+- };
+-
+-
+- 5.  INFO MESSAGE (e.g., during async operation)
+- ====================================
+-
+- const { showToast, removeToast } = useAppToast();
+-
+- const handleLongOperation = async () => {
+- const loadingToastId = showToast("Processing...", "info", 0);
+- try {
+-     await longRunningOperation();
+-     removeToast(loadingToastId);
+-     showToast("Done!", "success");
+- } catch (error) {
+-     removeToast(loadingToastId);
+-     showToast("Error occurred", "error");
+- }
+- };
+-
+- ====================================
+- API REFERENCE
+- ====================================
+-
+- useAppToast() returns:
+- {
+- toasts: Toast[] // Array of current toasts
+- showToast: (message: string, type?: "success"|"error"|"info", duration?: number) => string
+- removeToast: (id: string) => void
+- }
+-
+- showToast parameters:
+- - message (string): The message to display
+- - type (optional): "success" (green), "error" (red), "info" (blue)
+- - duration (optional): milliseconds to show (0 = manual dismiss, default 4000)
+-
+- ====================================
+- MIGRATION FROM OLD useToast HOOK
+- ====================================
+-
+- Before (local toast state):
+-
+- const { toasts, removeToast } = useToast();
+-
+- return (
+-     <>
+-       <ToastContainer toasts={toasts} onRemove={removeToast} />
+-       <form>...</form>
+-     </>
+- );
+-
+- After (global toast):
+-
+- const { showToast } = useAppToast();
+-
+- return (
+-     <form>...</form>
+- ); // No ToastContainer needed!
+-
+- ====================================
+- PAGES READY TO MIGRATE
+- ====================================
+-
+- These pages already use useToast() and can be upgraded:
+- - pages/history.tsx - Show toasts on filter changes, withdrawals
+- - pages/accounts.tsx - Show toasts on add/edit/delete account
+- - pages/settings.tsx - Show toasts on settings/password updates
+- - pages/complaints.tsx - Show toasts on status updates, replies
+-
+- Migration steps:
+- 1.  Replace: const { toasts, removeToast } = useToast()
+- With: const { showToast } = useAppToast()
+- 2.  Remove: <ToastContainer toasts={toasts} onRemove={removeToast} />
+- 3.  Update form submissions to use: showToast(message, type)
+-
+- ====================================
+- BENEFITS
+- ====================================
+-
+- ✅ No need to manage toast state in every page
+- ✅ Consistent toast UI across entire app
+- ✅ Toasts persist across page navigation
+- ✅ Works with server actions and mutations
+- ✅ Cleaner component code
+- ✅ Easy error handling
+- ✅ Type-safe API
+-
+- ====================================
+  \*/

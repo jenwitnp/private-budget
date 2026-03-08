@@ -4,6 +4,7 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import type { InfiniteData } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
 import { Card } from "@/components/ui/Card";
+import { useAppToast } from "@/hooks/useAppToast";
 import {
   fetchComplaintsAction,
   fetchComplaintStatsAction,
@@ -45,6 +46,7 @@ interface ComplaintResponse {
 export default function ComplaintsPage() {
   const { data: session } = useSession();
   const queryClient = useQueryClient();
+  const { showToast } = useAppToast();
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   // State
@@ -199,6 +201,7 @@ export default function ComplaintsPage() {
           });
         }
         setError(null);
+        showToast("อัปเดตสถานะสำเร็จ!", "success");
       } else {
         throw new Error("Failed to update status");
       }
@@ -206,6 +209,7 @@ export default function ComplaintsPage() {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to update status";
       setError(errorMessage);
+      showToast(errorMessage, "error");
       console.error("Error updating status:", err);
     }
   };
@@ -228,6 +232,7 @@ export default function ComplaintsPage() {
         if (detailResult.success && detailResult.data) {
           setComplaintReplies(detailResult.data.replies || []);
         }
+        showToast("เพิ่มการตอบลิปสำเร็จ!", "success");
       } else {
         throw new Error("Failed to add reply");
       }
@@ -235,6 +240,7 @@ export default function ComplaintsPage() {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to add reply";
       setError(errorMessage);
+      showToast(errorMessage, "error");
       console.error("Error adding reply:", err);
     } finally {
       setReplyLoading(false);

@@ -8,7 +8,9 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { CategoryProvider } from "./contexts/CategoryContext";
 import { DistrictProvider } from "./contexts/DistrictContext";
 import { TransactionProvider } from "./contexts/TransactionContext";
+import { ToastProvider } from "./contexts/ToastContext";
 import { SessionProviderWrapper } from "./SessionProviderWrapper";
+import { GlobalToastContainer } from "./GlobalToastContainer";
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -20,13 +22,18 @@ export function AppProviders({ children }: AppProvidersProps) {
   return (
     <SessionProvider>
       <QueryClientProvider client={queryClient}>
-        <SessionProviderWrapper>
-          <CategoryProvider>
-            <DistrictProvider>
-              <TransactionProvider>{children}</TransactionProvider>
-            </DistrictProvider>
-          </CategoryProvider>
-        </SessionProviderWrapper>
+        <ToastProvider>
+          <SessionProviderWrapper>
+            <CategoryProvider>
+              <DistrictProvider>
+                <TransactionProvider>
+                  <GlobalToastContainer />
+                  {children}
+                </TransactionProvider>
+              </DistrictProvider>
+            </CategoryProvider>
+          </SessionProviderWrapper>
+        </ToastProvider>
       </QueryClientProvider>
     </SessionProvider>
   );

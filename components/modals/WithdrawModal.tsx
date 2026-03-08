@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { useDropzone } from "react-dropzone";
 import { useSession } from "next-auth/react";
 import { handleWithdrawSubmitAction, logFormData } from "@/actions/withdrawal";
+import { useAppToast } from "@/hooks/useAppToast";
 import { WithdrawFormData } from "@/types/withdrawal";
 import { FormErrorMessage } from "@/components/form/FormErrorMessage";
 import { Input } from "@/components/form/Input";
@@ -32,6 +33,7 @@ export function WithdrawModal({
   onSubmit,
 }: WithdrawModalProps) {
   const { data: session } = useSession();
+  const { showToast } = useAppToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadedImages, setUploadedImages] = useState<
@@ -140,12 +142,14 @@ export function WithdrawModal({
       // Call parent onSubmit callback to trigger page refresh
       await onSubmit(formDataWithImages);
 
+      showToast("ส่งคำขอเบิกเงินสำเร็จ!", "success");
       handleClose();
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "เกิดข้อผิดพลาด";
       console.error("❌ Withdrawal error:", errorMessage);
       setError(errorMessage);
+      showToast(errorMessage, "error");
     } finally {
       setLoading(false);
     }
@@ -177,7 +181,7 @@ export function WithdrawModal({
             },
           })}
           error={errors.itemName}
-          placeholder="เช่น ค่าตรวจสุขภาพ"
+          placeholder="เช่น ค่าพัฒนาชุมชน"
           required
         />
 

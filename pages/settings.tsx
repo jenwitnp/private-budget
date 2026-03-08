@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import Layout from "@/components/layout/Layout";
+import { useAppToast } from "@/hooks/useAppToast";
 import { requireAuth } from "@/lib/auth/withAuth";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -32,6 +33,7 @@ export default function SettingsPage() {
   const { status, data: session, update: updateSession } = useSession();
   const router = useRouter();
   const userId = (session?.user as any)?.id;
+  const { showToast } = useAppToast();
 
   // Settings form
   const {
@@ -93,17 +95,18 @@ export default function SettingsPage() {
       await updateMutation.mutateAsync(data);
       // Refresh session to update user data
       await updateSession();
+      showToast("อัปเดตการตั้งค่าสำเร็จ!", "success");
     } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to update settings";
+      showToast(errorMessage, "error");
       console.error("Error updating settings:", err);
     }
   };
 
   const onPasswordSubmit = async (data: PasswordFormData) => {
     if (data.new_password !== data.confirm_password) {
-      setPasswordMessage({
-        type: "error",
-        text: "รหัสผ่านใหม่ไม่ตรงกัน",
-      });
+      showToast("รหัสผ่านไม่ตรงกัน!", "error");
       return;
     }
 
@@ -112,19 +115,14 @@ export default function SettingsPage() {
         current_password: data.current_password,
         new_password: data.new_password,
       });
-      setPasswordMessage({
-        type: "success",
-        text: "เปลี่ยนรหัสผ่านสำเร็จ",
-      });
+      showToast("เปลี่ยนรหัสผ่านสำเร็จ!", "success");
       resetPassword();
       setTimeout(() => setShowPasswordModal(false), 2000);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to change password";
       console.error("❌ Change password error:", errorMessage);
-      setPasswordMessage({
-        type: "error",
-        text: errorMessage || "เกิดข้อผิดพลาด",
-      });
+      showToast(errorMessage, "error");
     }
   };
 

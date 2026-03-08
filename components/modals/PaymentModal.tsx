@@ -11,6 +11,7 @@ import { useForm } from "react-hook-form";
 import { useSession } from "next-auth/react";
 import type { QueryClient } from "@tanstack/react-query";
 import type { ClientTransaction } from "@/server/transactions.server";
+import { useAppToast } from "@/hooks/useAppToast";
 import { Modal } from "@/components/ui/Modal";
 import { CurrencyInput } from "@/components/form/CurrencyInput";
 import { Select } from "@/components/form/Select";
@@ -53,6 +54,7 @@ export function PaymentModal({
   queryClient,
 }: PaymentModalProps) {
   const { data: session } = useSession();
+  const { showToast } = useAppToast();
   const {
     register,
     handleSubmit,
@@ -147,12 +149,14 @@ export function PaymentModal({
       }
 
       // ✅ Close modal first, form will reset via isOpen useEffect on next open
+      showToast("ยืนยันการชำระเงินสำเร็จ!", "success");
       onSuccess?.();
       onClose();
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Error processing payment";
       setError(errorMessage);
+      showToast(errorMessage, "error");
       onError?.(errorMessage);
     } finally {
       setIsLoading(false);

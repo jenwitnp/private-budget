@@ -11,6 +11,7 @@ import { useForm } from "react-hook-form";
 import { useSession } from "next-auth/react";
 import type { QueryClient } from "@tanstack/react-query";
 import type { ClientTransaction } from "@/server/transactions.server";
+import { useAppToast } from "@/hooks/useAppToast";
 import { Modal } from "@/components/ui/Modal";
 import { Textarea } from "@/components/form/Textarea";
 import { TransactionDetailContent } from "@/components/TransactionDetailContent";
@@ -48,6 +49,7 @@ export function RejectionModal({
   queryClient,
 }: RejectionModalProps) {
   const { data: session } = useSession();
+  const { showToast } = useAppToast();
   const {
     register,
     handleSubmit,
@@ -95,12 +97,14 @@ export function RejectionModal({
       }
 
       // ✅ Close modal first, form will reset via isOpen useEffect on next open
+      showToast("ปฏิเสธรายการสำเร็จ!", "success");
       onSuccess?.();
       onClose();
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Error rejecting transaction";
       setError(errorMessage);
+      showToast(errorMessage, "error");
       onError?.(errorMessage);
     } finally {
       setIsLoading(false);

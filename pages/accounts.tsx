@@ -8,6 +8,7 @@ import Layout from "@/components/layout/Layout";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/form/Input";
+import { useAppToast } from "@/hooks/useAppToast";
 import { requireAuth } from "@/lib/auth/withAuth";
 import { Select } from "@/components/form/Select";
 import { Autocomplete } from "@/components/form/Autocomplete";
@@ -35,6 +36,7 @@ export default function AccountsPage() {
   const { status, data: session } = useSession();
   const router = useRouter();
   const userId = (session?.user as any)?.id;
+  const { showToast } = useAppToast();
 
   const {
     register,
@@ -137,11 +139,16 @@ export default function AccountsPage() {
 
       if (editingId) {
         await updateMutation.mutateAsync({ id: editingId, input });
+        showToast("อัปเดตบัญชีสำเร็จ!", "success");
       } else {
         await createMutation.mutateAsync(input);
+        showToast("เพิ่มบัญชีสำเร็จ!", "success");
       }
       handleCloseModal();
     } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to save account";
+      showToast(errorMessage, "error");
       console.error("❌ Error saving account:", err);
     }
   };
@@ -150,7 +157,11 @@ export default function AccountsPage() {
     if (!confirm("Delete this account?")) return;
     try {
       await deleteMutation.mutateAsync(id);
+      showToast("ลบบัญชีสำเร็จ!", "success");
     } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to delete account";
+      showToast(errorMessage, "error");
       console.error("Error deleting account:", err);
     }
   };
@@ -158,7 +169,11 @@ export default function AccountsPage() {
   const handleSetPrimary = async (id: string) => {
     try {
       await setPrimaryMutation.mutateAsync(id);
+      showToast("อัปเดตบัญชีหลักสำเร็จ!", "success");
     } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to set primary account";
+      showToast(errorMessage, "error");
       console.error("Error setting primary account:", err);
     }
   };
