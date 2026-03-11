@@ -63,7 +63,7 @@ export function Modal({
             <button
               onClick={onClose}
               disabled={isLoading}
-              className={`text-slate-400 text-2xl leading-none transition-colors flex-shrink-0 ${
+              className={`text-slate-400 text-2xl leading-none transition-colors shrink-0 ${
                 isLoading
                   ? "cursor-not-allowed opacity-50"
                   : "hover:text-slate-600 cursor-pointer"

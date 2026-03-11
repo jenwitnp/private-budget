@@ -5,6 +5,7 @@ import type { InfiniteData } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
 import { Card } from "@/components/ui/Card";
 import { useAppToast } from "@/hooks/useAppToast";
+import { LINE_OA_CONFIG } from "@/lib/config/lineOA";
 import {
   fetchComplaintsAction,
   fetchComplaintStatsAction,
@@ -542,13 +543,30 @@ export default function ComplaintsPage() {
                             <option value="closed">ปิดแล้ว</option>
                           </select>
                         )}
-                        <button
-                          onClick={() => handleViewDetail(complaint)}
-                          className="px-3 py-1.5 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition whitespace-nowrap"
-                        >
-                          <i className="fa-solid fa-eye mr-1"></i>
-                          ดูรายละเอียด
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleViewDetail(complaint)}
+                            className="flex-1 px-3 py-1.5 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition whitespace-nowrap"
+                          >
+                            <i className="fa-solid fa-eye mr-1"></i>
+                            ดูรายละเอียด
+                          </button>
+                          {LINE_OA_CONFIG.isConfigured() && (
+                            <a
+                              href={LINE_OA_CONFIG.getMessageUrl(
+                                undefined,
+                                complaint.line_user_id,
+                              )}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-1.5 text-sm bg-slate-200 hover:bg-slate-400 text-white rounded-lg transition whitespace-nowrap flex items-center justify-center"
+                              title="Send message on LINE"
+                            >
+                              <i className="fa-brands fa-line mr-1"></i>
+                              LINE
+                            </a>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </Card>
@@ -579,7 +597,7 @@ export default function ComplaintsPage() {
                     <h2 className="text-xl font-bold text-slate-900">
                       ข้อร้องเรียน #{selectedComplaint.id.substring(0, 8)}
                     </h2>
-                    <div className="flex items-center gap-2 mt-2">
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
                       <span
                         className={`px-2.5 py-1 rounded-full text-xs font-semibold ${statusBadgeColor(selectedComplaint.status)}`}
                       >
@@ -592,11 +610,26 @@ export default function ComplaintsPage() {
                           {categoryLabel(selectedComplaint.category)}
                         </span>
                       )}
+                      {LINE_OA_CONFIG.isConfigured() && (
+                        <a
+                          href={LINE_OA_CONFIG.getMessageUrl(
+                            undefined,
+                            selectedComplaint.line_user_id,
+                          )}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 hover:bg-green-200 transition"
+                          title="Send message on LINE OA"
+                        >
+                          <i className="fa-brands fa-line mr-1"></i>
+                          Chat on LINE
+                        </a>
+                      )}
                     </div>
                   </div>
                   <button
                     onClick={() => setSelectedComplaint(null)}
-                    className="text-slate-500 hover:text-slate-700"
+                    className="text-slate-500 hover:text-slate-700 shrink-0"
                   >
                     <i className="fa-solid fa-times text-xl"></i>
                   </button>
