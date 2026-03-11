@@ -33,7 +33,7 @@ export const LINE_OA_CONFIG = {
     const oaIdWithoutAt = id.startsWith("@") ? id.substring(1) : id;
 
     // Format: https://manager.line.biz/account/{OA_ID}/chat/{USER_ID}
-    return `https://chat.line.biz/U0f3adb2e43d9be367877e9146fe1b2da/chat/${userId}`;
+    return `https://chat.line.biz/U7d5d8d48efe02be61714fb8eb4d6347b/chat/${userId}`;
   },
 
   // Check if LINE OA is configured
