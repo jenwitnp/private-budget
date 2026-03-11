@@ -553,17 +553,16 @@ export default function ComplaintsPage() {
                           </button>
                           {LINE_OA_CONFIG.isConfigured() && (
                             <a
-                              href={LINE_OA_CONFIG.getMessageUrl(
-                                undefined,
+                              href={LINE_OA_CONFIG.getManagerChatUrl(
                                 complaint.line_user_id,
                               )}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="px-3 py-1.5 text-sm bg-slate-200 hover:bg-slate-400 text-white rounded-lg transition whitespace-nowrap flex items-center justify-center"
-                              title="Send message on LINE"
+                              className="px-3 py-1.5 text-sm bg-slate-100 hover:bg-slate-300 text-white rounded-lg transition whitespace-nowrap flex items-center justify-center"
+                              title="Open admin chat on LINE OA Manager"
                             >
                               <i className="fa-brands fa-line mr-1"></i>
-                              LINE
+                              LINE Chat
                             </a>
                           )}
                         </div>
@@ -612,17 +611,16 @@ export default function ComplaintsPage() {
                       )}
                       {LINE_OA_CONFIG.isConfigured() && (
                         <a
-                          href={LINE_OA_CONFIG.getMessageUrl(
-                            undefined,
+                          href={LINE_OA_CONFIG.getManagerChatUrl(
                             selectedComplaint.line_user_id,
                           )}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 hover:bg-green-200 transition"
-                          title="Send message on LINE OA"
+                          title="Open admin chat on LINE OA Manager"
                         >
                           <i className="fa-brands fa-line mr-1"></i>
-                          Chat on LINE
+                          Admin Chat
                         </a>
                       )}
                     </div>

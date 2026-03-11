@@ -1,33 +1,37 @@
-# LINE Official Account (OA) Integration Guide
+# LINE Official Account (OA) Manager Chat Integration Guide
 
-This guide explains how to set up LINE OA messaging links in the complaints system.
+This guide explains how to integrate LINE OA Manager chat console for admins to communicate with customers directly through the LINE OA Manager dashboard.
 
 ## Overview
 
-Users can now click a button on complaint cards to send a message directly to your LINE Official Account. This enables seamless communication between the web platform and LINE OA.
+Instead of sending personal LINE messages, admins can now click a button to open the LINE OA Manager chat console and chat with specific customers. This provides a professional channel for business communications.
+
+**Link Format:**
+
+```
+https://manager.line.biz/account/{OA_ID}/chat/{USER_ID}
+```
+
+Example:
+
+```
+https://manager.line.biz/account/374yziyi/chat/U0ec973ebdf8b65262a4aef60f1d720d0
+```
 
 ## Setup
 
-### 1. Get Your LINE OA ID
+### 1. Get Your LINE OA Basic ID
 
 1. Go to [LINE Official Account Manager](https://manager.line.biz/)
 2. Navigate to your account settings
-3. Find your **Bot ID** (looks like: `@1234567890abcdef1234567890abcdef`)
+3. Find your **Basic ID** (format: `374yziyi` - without the @ symbol)
 
 ### 2. Configure Environment Variables
 
-Add the LINE OA ID to your `.env.local` file:
+Add the LINE OA ID to your `.env.local` file (with @ symbol):
 
 ```env
-NEXT_PUBLIC_LINE_OA_ID=@your_oa_id_here
-```
-
-Replace `@your_oa_id_here` with your actual LINE OA Bot ID.
-
-**Example:**
-
-```env
-NEXT_PUBLIC_LINE_OA_ID=@ABC123DEF456
+NEXT_PUBLIC_LINE_OA_ID=@374yziyi
 ```
 
 ### 3. Deploy Changes
@@ -41,62 +45,62 @@ After adding the environment variable:
 
 ### Complaint Card
 
-- A green **LINE** button appears next to the "View Detail" button
-- Clicking it opens the LINE OA conversation with the specific customer (using their LINE user ID)
-- Allows direct messaging to that customer through LINE OA
+- A green **LINE Chat** button appears next to the "View Detail" button
+- Clicking it opens LINE OA Manager chat with the specific customer
+- Allows direct admin-to-customer communication within the OA Manager
 
 ### Detail Modal
 
-- When viewing complaint details, a "Chat on LINE" badge appears next to status badges
-- Clicking it also opens the LINE OA conversation with that customer
+- When viewing complaint details, an "Admin Chat" badge appears next to status badges
+- Clicking it opens the same manager chat console
+- Professional communication channel for resolving complaints
 
-## URL Format
+## How It Works
 
-The links include the customer's LINE user ID for direct communication:
+1. Admin views a complaint with a customer's LINE info
+2. Admin clicks the **LINE Chat** or **Admin Chat** button
+3. Browser opens LINE OA Manager with that customer's chat window
+4. Admin can send messages, resolve issues, and provide support
+5. Conversation history is maintained in the OA Manager
+
+## URL Structure
 
 ```
-https://line.me/R/oaMessage/{OA_ID}/?userId={LINE_USER_ID}
+https://manager.line.biz/account/{OA_ID_WITHOUT_AT}/chat/{LINE_USER_ID}
 ```
 
-Example:
+**Components:**
 
-```
-https://line.me/R/oaMessage/@ABC123DEF456/?userId=U1234567890abcdef1234567890abcdef
-```
-
-This allows you to:
-
-- Identify which complaint the conversation is related to
-- Track conversations by customer
-- Provide personalized support based on complaint history
-
-## Troubleshooting
-
-### Buttons Don't Appear
-
-- Check that `NEXT_PUBLIC_LINE_OA_ID` is set in `.env.local`
-- Make sure the dev server was restarted after adding the variable
-- Verify the OA ID format is correct (should start with `@`)
-
-### Links Don't Work
-
-- Ensure your OA ID is correct in LINE Manager
-- Try importing the OA in LINE app first manually
-- Verify you're using the Bot ID, not the User ID
+- `OA_ID_WITHOUT_AT`: Your LINE Basic ID (e.g., `374yziyi`)
+- `LINE_USER_ID`: Customer's LINE user ID (e.g., `U0ec973ebdf8b65262a4aef60f1d720d0`)
 
 ## Code Reference
 
-The LINE OA configuration is managed in:
+The configuration is managed in:
 
-- `lib/config/lineOA.ts` - Configuration file
+- `lib/config/lineOA.ts` - Configuration and URL generation
 - `pages/complaints.tsx` - Component integration
 
 Key helper functions:
 
 ```typescript
-LINE_OA_CONFIG.getMessageUrl(); // Get the full LINE OA message URL
+LINE_OA_CONFIG.getManagerChatUrl(userId); // Get manager chat URL for a user
+LINE_OA_CONFIG.getOAIdWithoutAt(); // Get OA ID without @ symbol
 LINE_OA_CONFIG.isConfigured(); // Check if OA ID is configured
 ```
+
+## Requirements
+
+- Admin must be logged into LINE Official Account Manager
+- Customer must have a valid LINE user ID (stored in complaints)
+- LINE OA must be properly configured with customer
+
+## Security Notes
+
+- `NEXT_PUBLIC_LINE_OA_ID` is intentionally public (exposed to the browser)
+- No sensitive data is sent to LINE through these links
+- Only authenticated admins can access the manager dashboard
+- User IDs are obtained from legitimate complaint records
 
 ## Security Notes
 
