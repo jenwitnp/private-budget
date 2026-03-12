@@ -43,6 +43,14 @@ export const menuItems = [
     permission: "view_own_profile",
     color: "from-rose-500 to-rose-600",
   },
+  {
+    href: "/schedule",
+    label: "ตารางการทำงาน",
+    shortLabel: "Schedule",
+    icon: "fa-calendar-check",
+    permission: "view_own_profile",
+    color: "from-teal-500 to-teal-600",
+  },
 ];
 
 export const adminItems = [

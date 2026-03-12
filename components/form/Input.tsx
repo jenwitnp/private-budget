@@ -5,7 +5,7 @@ interface InputProps {
   label: string;
   register: UseFormRegisterReturn;
   error?: FieldError;
-  type?: "text" | "number" | "email" | "password";
+  type?: "text" | "number" | "email" | "password" | "date" | "time";
   placeholder?: string;
   required?: boolean;
   step?: string;

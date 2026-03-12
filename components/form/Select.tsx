@@ -7,12 +7,14 @@ interface SelectOption {
 
 interface SelectProps {
   label: string;
-  register: UseFormRegisterReturn;
+  register?: UseFormRegisterReturn;
   error?: FieldError;
   options: SelectOption[];
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;
+  value?: string | number;
+  onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 }
 
 export function Select({
@@ -23,6 +25,8 @@ export function Select({
   placeholder,
   required = false,
   disabled = false,
+  value,
+  onChange,
 }: SelectProps) {
   return (
     <div>
@@ -32,7 +36,9 @@ export function Select({
       </label>
 
       <select
-        {...register}
+        {...(register || {})}
+        value={value}
+        onChange={onChange}
         disabled={disabled}
         className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-colors text-slate-800 ${
           disabled ? "bg-slate-100 text-slate-500 cursor-not-allowed" : ""

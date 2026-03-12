@@ -9,6 +9,7 @@ import { hasPermission, UserRole } from "@/lib/auth/roles";
 import { menuItems, adminItems, type MenuItem } from "@/lib/config/menuItems";
 import { fetchTransactionStatsAction } from "@/actions/stats";
 import { fetchComplaintStatsAction } from "@/actions/complaints";
+import { fetchScheduleStatsAction } from "@/actions/schedules";
 
 interface MenuTileProps {
   item: MenuItem;
@@ -100,6 +101,11 @@ export function GridMenu({ onClose }: GridMenuProps) {
     pending: number;
   } | null>(null);
 
+  // Fetch schedule stats (all users, no permission filtering)
+  const [scheduleStats, setScheduleStats] = useState<{
+    pending: number;
+  } | null>(null);
+
   useEffect(() => {
     const loadComplaintStats = async () => {
       try {
@@ -112,6 +118,20 @@ export function GridMenu({ onClose }: GridMenuProps) {
       }
     };
     loadComplaintStats();
+  }, []);
+
+  useEffect(() => {
+    const loadScheduleStats = async () => {
+      try {
+        const result = await fetchScheduleStatsAction();
+        if (result.success && result.stats) {
+          setScheduleStats({ pending: result.stats.pending });
+        }
+      } catch (err) {
+        console.error("Error loading schedule stats:", err);
+      }
+    };
+    loadScheduleStats();
   }, []);
 
   const handleLogout = async () => {
@@ -153,7 +173,9 @@ export function GridMenu({ onClose }: GridMenuProps) {
                       ? transactionStats?.pending
                       : item.href === "/complaints"
                         ? complaintStats?.pending
-                        : undefined
+                        : item.href === "/schedule"
+                          ? scheduleStats?.pending
+                          : undefined
                   }
                 />
               ))}
