@@ -99,9 +99,8 @@ export default function SchedulePage() {
 
   const { data: schedulesByMonth = [], isLoading: monthLoading } =
     useSchedulesByMonth(year, month);
-  const { data: schedulesByDate = [] } = useSchedulesByDate(
-    selectedDate || new Date().toISOString().split("T")[0],
-  );
+  const { data: schedulesByDate = [], isLoading: schedulesByDateLoading } =
+    useSchedulesByDate(selectedDate || new Date().toISOString().split("T")[0]);
 
   const createMutation = useCreateSchedule();
   const updateMutation = useUpdateSchedule(editingId || "");
@@ -469,7 +468,12 @@ export default function SchedulePage() {
                 })}
               </h2>
 
-              {schedulesByDate.length === 0 ? (
+              {schedulesByDateLoading ? (
+                <Card className="text-center py-8">
+                  <i className="fa-solid fa-spinner fa-spin text-2xl text-emerald-600 mb-3 block"></i>
+                  <p className="text-slate-600">กำลังโหลดข้อมูล...</p>
+                </Card>
+              ) : schedulesByDate.length === 0 ? (
                 <Card className="text-center py-8 text-slate-500">
                   <i className="fa-solid fa-calendar-days text-2xl mb-2 mr-2 block"></i>
                   ไม่มีตารางการทำงานในวันนี้
