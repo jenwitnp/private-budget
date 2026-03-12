@@ -177,15 +177,6 @@ function _HistoryPageContent({
 
   const stats = statsResponse?.success ? statsResponse.data : null;
 
-  console.log("🔍 [History] Stats Debug:", {
-    statsResponse,
-    statsSuccess: statsResponse?.success,
-    stats,
-    statsLoading,
-    statsError: statsResponse?.error,
-    showCondition: !!stats && !statsLoading,
-  });
-
   // Infinite query for transactions
   const {
     data,

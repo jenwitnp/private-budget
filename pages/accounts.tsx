@@ -11,7 +11,7 @@ import { Input } from "@/components/form/Input";
 import { useAppToast } from "@/hooks/useAppToast";
 import { requireAuth } from "@/lib/auth/withAuth";
 import { Select } from "@/components/form/Select";
-import { Autocomplete } from "@/components/form/Autocomplete";
+import { BankAutocomplete } from "@/components/form/BankAutocomplete";
 import { Modal } from "@/components/ui/Modal";
 import {
   useBankAccounts,
@@ -322,30 +322,12 @@ export default function AccountsPage() {
             error={errors.account_name}
           />
 
-          <Autocomplete
+          <BankAutocomplete
             label="ชื่อธนาคาร"
             placeholder="ค้นหาธนาคาร..."
-            data={THAI_BANKS}
-            displayKey="name"
-            valueKey="code"
-            value={selectedBank}
-            onChange={setSelectedBank}
+            value={selectedBank?.code || ""}
+            onChange={(bank) => setSelectedBank(bank)}
             error={!selectedBank ? "กรุณาเลือกธนาคาร" : undefined}
-            renderItem={(bank) => (
-              <div className="flex items-center gap-2">
-                {bank.logo && (
-                  <img
-                    src={bank.logo}
-                    alt={bank.nameEn}
-                    className="w-6 h-6 rounded"
-                  />
-                )}
-                <div>
-                  <div className="font-medium">{bank.name}</div>
-                  <div className="text-xs text-slate-500">{bank.nameEn}</div>
-                </div>
-              </div>
-            )}
           />
 
           <Input

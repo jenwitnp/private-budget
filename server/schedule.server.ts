@@ -477,6 +477,72 @@ export async function deleteSchedule(
 }
 
 /**
+ * Search schedules by keyword field
+ * Uses pre-computed key_word field for fast search
+ */
+export async function searchSchedules(
+  userId: string,
+  query: string,
+): Promise<{
+  success: boolean;
+  data?: Schedule[];
+  error?: string;
+}> {
+  try {
+    if (!query.trim()) {
+      return { success: true, data: [] };
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+
+    const { data, error } = await (supabase as any)
+      .from("schedule")
+      .select(
+        `
+        id, user_id, scheduled_date, time_start, time_end, title, address,
+        district_id, sub_district_id, note, status, created_at, updated_at,
+        users (first_name, last_name),
+        districts (name),
+        sub_districts (name)
+      `,
+      )
+      //   .eq("user_id", userId)
+      //   .eq("status", "active")
+      //   .gte("scheduled_date", today)
+      //   .order("scheduled_date", { ascending: true })
+      .limit(10);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    // Filter by key_word field (pre-computed search text)
+    const lowerQuery = query.toLowerCase();
+    const filtered = (data || []).filter((schedule: any) => {
+      const keywordText = (schedule.key_word || "").toLowerCase();
+      return keywordText.includes(lowerQuery);
+    });
+
+    const formattedData = filtered.map((schedule: any) => {
+      const firstName = schedule.users?.first_name || "";
+      const lastName = schedule.users?.last_name || "";
+      const userName = `${firstName} ${lastName}`.trim();
+      return {
+        ...schedule,
+        user_name: userName || "Unknown User",
+        district_name: schedule.districts?.name,
+        sub_district_name: schedule.sub_districts?.name,
+      };
+    });
+
+    return { success: true, data: formattedData };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    return { success: false, error: errorMessage };
+  }
+}
+
+/**
  * Get upcoming schedules for a user
  */
 export async function getUpcomingSchedules(

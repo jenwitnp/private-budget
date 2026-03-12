@@ -152,25 +152,62 @@ export function prepareTransactionDataForSupabase(
   let districtId: number | null = null;
   let subDistrictId: number | null = null;
 
-  if (formData.district_id && formData.district_id.trim() !== "") {
+  if (formData.district_id) {
     try {
-      districtId = parseInt(formData.district_id, 10);
-      if (isNaN(districtId)) {
-        districtId = null;
+      // Handle both string and number types
+      const districtIdValue =
+        typeof formData.district_id === "string"
+          ? formData.district_id.trim()
+          : String(formData.district_id);
+
+      if (districtIdValue !== "") {
+        districtId = parseInt(districtIdValue, 10);
+        if (isNaN(districtId)) {
+          districtId = null;
+        }
       }
     } catch (e) {
       districtId = null;
     }
   }
 
-  if (formData.sub_district_id && formData.sub_district_id.trim() !== "") {
+  if (formData.sub_district_id) {
     try {
-      subDistrictId = parseInt(formData.sub_district_id, 10);
-      if (isNaN(subDistrictId)) {
-        subDistrictId = null;
+      // Handle both string and number types
+      const subDistrictIdValue =
+        typeof formData.sub_district_id === "string"
+          ? formData.sub_district_id.trim()
+          : String(formData.sub_district_id);
+
+      if (subDistrictIdValue !== "") {
+        subDistrictId = parseInt(subDistrictIdValue, 10);
+        if (isNaN(subDistrictId)) {
+          subDistrictId = null;
+        }
       }
     } catch (e) {
       subDistrictId = null;
+    }
+  }
+
+  // Convert schedule_id to number if provided
+  let scheduleId: number | null = null;
+  if (formData.schedule_id) {
+    try {
+      // Handle both string and number types
+      const scheduleIdValue =
+        typeof formData.schedule_id === "string"
+          ? formData.schedule_id.trim()
+          : String(formData.schedule_id);
+
+      if (scheduleIdValue !== "") {
+        scheduleId = parseInt(scheduleIdValue, 10);
+        if (isNaN(scheduleId)) {
+          scheduleId = null;
+        }
+      }
+    } catch (e) {
+      scheduleId = null;
     }
   }
 
@@ -195,6 +232,7 @@ export function prepareTransactionDataForSupabase(
     updated_at: new Date().toISOString(),
     districts_id: districtId,
     sub_districts_id: subDistrictId,
+    schedule_id: scheduleId,
   };
 }
 

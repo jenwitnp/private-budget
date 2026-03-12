@@ -7,8 +7,12 @@ interface AutocompleteProps {
   displayKey: string | number | symbol;
   valueKey: string | number | symbol;
   value: any | null;
+  searchValue?: string; // Current search input value from parent
   onChange: (item: any) => void;
+  onInputChange?: (value: string) => void; // Callback when user types in input
   onSearch?: (query: string, data: any[]) => any[];
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  isLoading?: boolean;
   error?: string | null;
   renderItem?: (item: any) => React.ReactNode;
 }
@@ -20,36 +24,21 @@ export function Autocomplete({
   displayKey,
   valueKey,
   value,
+  searchValue = "",
   onChange,
+  onInputChange,
   onSearch,
+  onKeyDown,
+  isLoading = false,
   error,
   renderItem,
 }: AutocompleteProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [results, setResults] = useState<any[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Handle search
-  useEffect(() => {
-    if (searchTerm.trim()) {
-      if (onSearch) {
-        setResults(onSearch(searchTerm, data));
-      } else {
-        // Default search by displayKey
-        const lowerQuery = searchTerm.toLowerCase();
-        setResults(
-          data.filter((item) =>
-            String(item[displayKey]).toLowerCase().includes(lowerQuery),
-          ),
-        );
-      }
-      setIsOpen(true);
-    } else {
-      setResults([]);
-      setIsOpen(false);
-    }
-  }, [searchTerm, data, displayKey, onSearch]);
+  // Use data prop directly (for fresh API results from parent component)
+  const results = data;
 
   // Handle click outside
   useEffect(() => {
@@ -72,6 +61,15 @@ export function Autocomplete({
     setIsOpen(false);
   };
 
+  // Open dropdown when results are available or search is active
+  useEffect(() => {
+    if (searchValue && results.length > 0) {
+      setIsOpen(true);
+    } else if (!searchValue && !results.length) {
+      setIsOpen(false);
+    }
+  }, [results, searchValue]);
+
   return (
     <div ref={containerRef} className="relative">
       {label && (
@@ -84,16 +82,20 @@ export function Autocomplete({
       <div className="relative">
         <input
           type="text"
-          value={searchTerm || (value ? String(value[displayKey]) : "")}
+          value={searchValue || (value ? String(value[displayKey]) : "")}
           onChange={(e) => {
             const newValue = e.target.value;
-            setSearchTerm(newValue);
+            // Update parent search input state
+            onInputChange?.(newValue);
+            // Clear selection if user clears input
             if (newValue === "" && value) {
               onChange(null);
             }
           }}
+          onKeyDown={(e) => {
+            onKeyDown?.(e);
+          }}
           onFocus={() => {
-            setSearchTerm("");
             setIsOpen(true);
           }}
           placeholder={placeholder}
@@ -122,22 +124,33 @@ export function Autocomplete({
       </div>
 
       {/* Dropdown */}
-      {isOpen && results.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-10 max-h-64 overflow-y-auto">
-          {results.map((item, idx) => (
-            <button
-              key={idx}
-              onClick={() => handleSelect(item)}
-              className="w-full text-left px-4 py-3 hover:bg-emerald-50 transition-colors flex items-center justify-between border-b border-slate-100 last:border-b-0"
-            >
-              <div className="flex-1">
-                {renderItem ? renderItem(item) : String(item[displayKey])}
-              </div>
-              {value && value[valueKey] === item[valueKey] && (
-                <i className="fa-solid fa-check text-emerald-500"></i>
-              )}
-            </button>
-          ))}
+      {isOpen && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
+          {isLoading ? (
+            <div className="px-4 py-3 text-center text-slate-500">
+              <i className="fa-solid fa-spinner fa-spin mr-2"></i>
+              กำลังค้นหา...
+            </div>
+          ) : results.length > 0 ? (
+            results.map((item, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleSelect(item)}
+                className="w-full text-left px-4 py-3 hover:bg-emerald-50 transition-colors flex items-center justify-between border-b border-slate-100 last:border-b-0"
+              >
+                <div className="flex-1">
+                  {renderItem ? renderItem(item) : String(item[displayKey])}
+                </div>
+                {value && value[valueKey] === item[valueKey] && (
+                  <i className="fa-solid fa-check text-emerald-500"></i>
+                )}
+              </button>
+            ))
+          ) : (
+            <div className="px-4 py-3 text-center text-slate-500">
+              ไม่พบข้อมูล
+            </div>
+          )}
         </div>
       )}
 

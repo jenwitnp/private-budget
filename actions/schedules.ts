@@ -1,6 +1,6 @@
 "use server";
 
-import { getScheduleStats } from "@/server/schedule.server";
+import { getScheduleStats, searchSchedules } from "@/server/schedule.server";
 
 /**
  * Fetch schedule stats for the menu badge
@@ -20,7 +20,28 @@ export async function fetchScheduleStatsAction() {
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
-    console.error("[SCHEDULES_ACTION] Error fetching stats:", errorMessage);
+    throw error;
+  }
+}
+
+/**
+ * Search schedules by title, date, or location
+ */
+export async function searchSchedulesAction(userId: string, query: string) {
+  try {
+    const result = await searchSchedules(userId, query);
+
+    if (!result.success) {
+      throw new Error(result.error || "Failed to search schedules");
+    }
+
+    return {
+      success: true,
+      data: result.data || [],
+    };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     throw error;
   }
 }

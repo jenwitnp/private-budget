@@ -38,11 +38,14 @@ create table public.transactions (
   category_id uuid null,
   payment_method character varying(50) null default 'transfer'::character varying,
   thumbnail character varying null,
+  schedule_id bigint null,
   constraint transactions_pkey primary key (id),
   constraint transactions_transaction_number_key unique (transaction_number),
+  constraint transactions_created_by_fkey foreign KEY (created_by) references users (id),
   constraint transactions_districts_id_fkey foreign KEY (districts_id) references districts (id),
   constraint transactions_paid_by_fkey foreign KEY (paid_by) references users (id),
   constraint transactions_rejected_by_fkey foreign KEY (rejected_by) references users (id),
+  constraint transactions_schedule_id_fkey foreign KEY (schedule_id) references schedule (id),
   constraint transactions_sub_districts_id_fkey foreign KEY (sub_districts_id) references sub_districts (id),
   constraint transactions_approved_by_fkey foreign KEY (approved_by) references users (id),
   constraint transactions_category_id_fkey foreign KEY (category_id) references categories (id) on delete set null,
@@ -84,6 +87,22 @@ create index IF not exists idx_transactions_detail_date on public.transactions u
 create index IF not exists idx_transactions_category_id on public.transactions using btree (category_id) TABLESPACE pg_default;
 
 create index IF not exists idx_transactions_payment_method on public.transactions using btree (payment_method) TABLESPACE pg_default;
+
+create index IF not exists idx_transactions_status_net_amount on public.transactions using btree (status, net_amount) TABLESPACE pg_default
+where
+  (status = 'paid'::transaction_status);
+
+create index IF not exists idx_transactions_district_status on public.transactions using btree (districts_id, status) TABLESPACE pg_default
+where
+  (status = 'paid'::transaction_status);
+
+create index IF not exists idx_transactions_sub_district_status on public.transactions using btree (sub_districts_id, status) TABLESPACE pg_default
+where
+  (status = 'paid'::transaction_status);
+
+create index IF not exists idx_transactions_category_status on public.transactions using btree (category_id, status) TABLESPACE pg_default
+where
+  (status = 'paid'::transaction_status);
 
 create trigger trigger_transactions_updated_at BEFORE
 update on transactions for EACH row

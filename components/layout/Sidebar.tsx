@@ -9,6 +9,7 @@ import { hasPermission, UserRole } from "@/lib/auth/roles";
 import { menuItems, adminItems } from "@/lib/config/menuItems";
 import { fetchTransactionStatsAction } from "@/actions/stats";
 import { fetchComplaintStatsAction } from "@/actions/complaints";
+import { fetchScheduleStatsAction } from "@/actions/schedules";
 
 export function Sidebar() {
   const router = useRouter();
@@ -34,6 +35,11 @@ export function Sidebar() {
     pending: number;
   } | null>(null);
 
+  // Fetch schedule stats (all users, no permission filtering)
+  const [scheduleStats, setScheduleStats] = useState<{
+    pending: number;
+  } | null>(null);
+
   useEffect(() => {
     const loadComplaintStats = async () => {
       try {
@@ -46,6 +52,20 @@ export function Sidebar() {
       }
     };
     loadComplaintStats();
+  }, []);
+
+  useEffect(() => {
+    const loadScheduleStats = async () => {
+      try {
+        const result = await fetchScheduleStatsAction();
+        if (result.success && result.stats) {
+          setScheduleStats({ pending: result.stats.pending });
+        }
+      } catch (err) {
+        console.error("Error loading schedule stats:", err);
+      }
+    };
+    loadScheduleStats();
   }, []);
 
   const handleLogout = async () => {
@@ -82,7 +102,9 @@ export function Sidebar() {
                 ? transactionStats?.pending
                 : item.href === "/complaints"
                   ? complaintStats?.pending
-                  : undefined;
+                  : item.href === "/schedule"
+                    ? scheduleStats?.pending
+                    : undefined;
 
             return (
               <Link
