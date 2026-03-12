@@ -101,13 +101,13 @@ export function useUpdateSchedule(scheduleId: string) {
   });
 }
 
-export function useDeleteSchedule(scheduleId: string) {
+export function useDeleteSchedule() {
   const { data: session } = useSession();
   const userId = (session?.user as any)?.id;
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () =>
+    mutationFn: (scheduleId: string) =>
       userId ? deleteSchedule(userId, scheduleId) : Promise.reject("No user"),
     onSuccess: (res) => {
       if (res.success) {

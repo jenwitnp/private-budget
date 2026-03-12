@@ -104,7 +104,7 @@ export default function SchedulePage() {
 
   const createMutation = useCreateSchedule();
   const updateMutation = useUpdateSchedule(editingId || "");
-  const deleteMutation = useDeleteSchedule("");
+  const deleteMutation = useDeleteSchedule();
 
   // Load districts when province changes
   useEffect(() => {
@@ -256,8 +256,8 @@ export default function SchedulePage() {
   const handleDelete = async (id: string) => {
     if (!confirm("คุณต้องการลบการทำงานนี้ใช่หรือไม่?")) return;
     try {
-      const { mutateAsync } = useDeleteSchedule(id);
-      const result = await mutateAsync();
+      // Use the deleteMutation that was already created at the top level
+      const result = await deleteMutation.mutateAsync(id);
 
       if (!result.success) {
         console.error("❌ Delete failed:", result.error);
