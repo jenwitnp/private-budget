@@ -9,6 +9,7 @@ export interface Schedule {
   scheduled_date: string;
   time_start?: string;
   time_end?: string;
+  title?: string;
   address?: string;
   district_id?: string;
   sub_district_id?: string;
@@ -24,6 +25,7 @@ export interface CreateScheduleInput {
   scheduled_date: string;
   time_start?: string;
   time_end?: string;
+  title?: string;
   address?: string;
   district_id?: string;
   sub_district_id?: string;
@@ -35,6 +37,7 @@ export interface UpdateScheduleInput {
   scheduled_date?: string;
   time_start?: string;
   time_end?: string;
+  title?: string;
   address?: string;
   district_id?: string;
   sub_district_id?: string;
@@ -62,7 +65,7 @@ export async function getSchedulesByMonth(
       .from("schedule")
       .select(
         `
-        id, user_id, scheduled_date, time_start, time_end, address, 
+        id, user_id, scheduled_date, time_start, time_end, title, address, 
         district_id, sub_district_id, note, status, created_at, updated_at,
         users (first_name, last_name),
         districts (name),
@@ -113,7 +116,7 @@ export async function getSchedulesByDate(
       .from("schedule")
       .select(
         `
-        id, user_id, scheduled_date, time_start, time_end, address,
+        id, user_id, scheduled_date, time_start, time_end, title, address,
         district_id, sub_district_id, note, status, created_at, updated_at,
         users (first_name, last_name),
         districts (name),
@@ -178,6 +181,7 @@ export async function createSchedule(
       scheduled_date: input.scheduled_date,
       time_start: input.time_start || null,
       time_end: input.time_end || null,
+      title: input.title || null,
       address: input.address || null,
       district_id: districtId,
       sub_district_id: subDistrictId,
@@ -222,6 +226,11 @@ export async function updateSchedule(
   error?: string;
 }> {
   try {
+    console.log("\n=== UPDATE SCHEDULE START ===");
+    console.log("Schedule ID:", scheduleId);
+    console.log("User ID:", userId);
+    console.log("Input:", input);
+
     const updatePayload: any = {};
 
     if (input.scheduled_date !== undefined)
@@ -229,6 +238,7 @@ export async function updateSchedule(
     if (input.time_start !== undefined)
       updatePayload.time_start = input.time_start;
     if (input.time_end !== undefined) updatePayload.time_end = input.time_end;
+    if (input.title !== undefined) updatePayload.title = input.title;
     if (input.address !== undefined) updatePayload.address = input.address;
     if (input.district_id !== undefined)
       updatePayload.district_id = input.district_id
@@ -241,20 +251,46 @@ export async function updateSchedule(
     if (input.note !== undefined) updatePayload.note = input.note;
     if (input.status !== undefined) updatePayload.status = input.status;
 
+    console.log("Update payload:", updatePayload);
+
     const { data, error } = await (supabase as any)
       .from("schedule")
       .update(updatePayload)
       .eq("id", scheduleId)
       .eq("user_id", userId)
-      .select()
+      .select(
+        `
+        id, user_id, scheduled_date, time_start, time_end, title, address,
+        district_id, sub_district_id, note, status, created_at, updated_at,
+        users (first_name, last_name),
+        districts (name),
+        sub_districts (name)
+      `,
+      )
       .single();
 
+    console.log("Supabase response:", { data, error });
+
     if (error) {
+      console.error("❌ Update error:", error);
       return { success: false, error: error.message };
     }
 
-    return { success: true, data };
+    // Format data with user name and related data
+    const firstName = data?.users?.first_name || "";
+    const lastName = data?.users?.last_name || "";
+    const userName = `${firstName} ${lastName}`.trim();
+    const formattedData = {
+      ...data,
+      user_name: userName || "Unknown User",
+      district_name: data?.districts?.name,
+      sub_district_name: data?.sub_districts?.name,
+    };
+
+    console.log("✅ Schedule updated successfully:", formattedData);
+    return { success: true, data: formattedData };
   } catch (err) {
+    console.error("❌ Exception in updateSchedule:", err);
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
     return { success: false, error: errorMessage };
   }
@@ -309,7 +345,7 @@ export async function getUpcomingSchedules(
       .from("schedule")
       .select(
         `
-        id, user_id, scheduled_date, time_start, time_end, address,
+        id, user_id, scheduled_date, time_start, time_end, title, address,
         district_id, sub_district_id, note, status, created_at, updated_at,
         users (first_name, last_name),
         districts (name),

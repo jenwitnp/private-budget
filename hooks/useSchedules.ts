@@ -90,16 +90,29 @@ export function useUpdateSchedule(scheduleId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: UpdateScheduleInput) =>
-      userId
+    mutationFn: (input: UpdateScheduleInput) => {
+      console.log("\n=== useUpdateSchedule mutation called ===");
+      console.log("Schedule ID:", scheduleId);
+      console.log("User ID:", userId);
+      console.log("Input:", input);
+      return userId
         ? updateSchedule(userId, scheduleId, input)
-        : Promise.reject("No user"),
+        : Promise.reject("No user ID available");
+    },
     onSuccess: (res) => {
+      console.log("✅ Update mutation success:", res);
       if (res.success) {
+        console.log("🔄 Invalidating schedule queries and refetching...");
+        // Invalidate all schedule queries and refetch immediately
         queryClient.invalidateQueries({
           queryKey: ["schedules"],
         });
+      } else {
+        console.error("❌ Update returned error:", res.error);
       }
+    },
+    onError: (err) => {
+      console.error("❌ Update mutation error:", err);
     },
   });
 }

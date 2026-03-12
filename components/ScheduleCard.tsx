@@ -63,6 +63,14 @@ export function ScheduleCard({
             </p>
           )}
 
+          {/* Title */}
+          {schedule.title && (
+            <p className="text-sm font-semibold text-slate-800 line-clamp-1">
+              <i className="fa-solid fa-tag mr-2 text-emerald-600"></i>
+              {schedule.title}
+            </p>
+          )}
+
           {/* Time and Status */}
           <div className="flex justify-between items-start gap-2">
             <div className="flex-1">
@@ -141,6 +149,14 @@ export function ScheduleCard({
           <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5 pb-2 border-b border-slate-200">
             <i className="fa-solid fa-user-circle text-slate-600"></i>
             {schedule.user_name}
+          </p>
+        )}
+
+        {/* Title */}
+        {schedule.title && (
+          <p className="text-lg font-bold text-slate-800">
+            <i className="fa-solid fa-tag mr-2 text-emerald-600"></i>
+            {schedule.title}
           </p>
         )}
 

@@ -11,6 +11,7 @@ import { Select } from "@/components/form/Select";
 import { Modal } from "@/components/ui/Modal";
 import { ScheduleCard } from "@/components/ScheduleCard";
 import { requireAuth } from "@/lib/auth/withAuth";
+import { useAppToast } from "@/hooks/useAppToast";
 import {
   useSchedulesByMonth,
   useSchedulesByDate,
@@ -32,6 +33,7 @@ interface FormData {
   scheduled_date: string;
   time_start?: string;
   time_end?: string;
+  title?: string;
   address?: string;
   district_id?: string;
   sub_district_id?: string;
@@ -48,6 +50,7 @@ const PROVINCES = ["หนองคาย"];
 
 export default function SchedulePage() {
   const { data: session } = useSession();
+  const toast = useAppToast();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -153,12 +156,19 @@ export default function SchedulePage() {
   const handleOpenModal = (date?: string, schedule?: Schedule) => {
     if (schedule) {
       setEditingId(schedule.id);
+      const districtIdStr = schedule.district_id?.toString() || "";
+      // Update formState.district so sub-districts will load via useEffect
+      setFormState((prev) => ({
+        ...prev,
+        district: districtIdStr,
+      }));
       reset({
         scheduled_date: schedule.scheduled_date,
         time_start: schedule.time_start,
         time_end: schedule.time_end,
+        title: schedule.title,
         address: schedule.address,
-        district_id: schedule.district_id?.toString(),
+        district_id: districtIdStr,
         sub_district_id: schedule.sub_district_id?.toString(),
         note: schedule.note,
         status: schedule.status,
@@ -192,6 +202,7 @@ export default function SchedulePage() {
         scheduled_date: data.scheduled_date,
         time_start: data.time_start || undefined,
         time_end: data.time_end || undefined,
+        title: data.title || undefined,
         address: data.address || undefined,
         district_id: data.district_id || undefined,
         sub_district_id: data.sub_district_id || undefined,
@@ -216,14 +227,30 @@ export default function SchedulePage() {
       }
 
       console.log("Mutation result:", result);
+
+      // Check if mutation was successful
+      if (!result.success) {
+        console.error("❌ Mutation failed:", result.error);
+        toast.showToast(result.error || "เกิดข้อผิดพลาดในการบันทึก", "error");
+        return;
+      }
+
+      // Show success message
+      const successMessage = editingId
+        ? "อัปเดตตารางการทำงานสำเร็จ"
+        : "เพิ่มตารางการทำงานสำเร็จ";
+      toast.showToast(successMessage, "success");
       console.log("Submit successful, closing modal");
       handleCloseModal();
     } catch (err) {
       console.error("❌ Error saving schedule:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "เกิดข้อผิดพลาดที่ไม่ทราบ";
       console.error("Error details:", {
-        message: (err as any)?.message,
+        message: errorMessage,
         stack: (err as any)?.stack,
       });
+      toast.showToast(errorMessage, "error");
     }
   };
 
@@ -231,9 +258,20 @@ export default function SchedulePage() {
     if (!confirm("คุณต้องการลบการทำงานนี้ใช่หรือไม่?")) return;
     try {
       const { mutateAsync } = useDeleteSchedule(id);
-      await mutateAsync();
+      const result = await mutateAsync();
+
+      if (!result.success) {
+        console.error("❌ Delete failed:", result.error);
+        toast.showToast(result.error || "เกิดข้อผิดพลาดในการลบ", "error");
+        return;
+      }
+
+      toast.showToast("ลบตารางการทำงานสำเร็จ", "success");
     } catch (err) {
       console.error("Error deleting schedule:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการลบ";
+      toast.showToast(errorMessage, "error");
     }
   };
 
@@ -568,7 +606,19 @@ export default function SchedulePage() {
               error={errors.time_end}
             />
           </div>
-
+          {/* Title Field */}
+          <Input
+            label="ชื่ออีเว้นท์ *"
+            placeholder="เช่น ประชุมทีมงาน, ตรวจสอบอุปกรณ์"
+            register={register("title", {
+              required: "กรุณากรอกชื่ออีเว้นท์",
+              maxLength: {
+                value: 255,
+                message: "ชื่ออีเว้นท์ต้องไม่เกิน 255 ตัวอักษร",
+              },
+            })}
+            error={errors.title}
+          />
           {/* Address Field */}
           <Input
             label="ที่อยู่ *"

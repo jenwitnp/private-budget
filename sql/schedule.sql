@@ -1,42 +1,55 @@
--- Drop existing table if it exists
-DROP TABLE IF EXISTS public.schedule CASCADE;
-
--- Create schedule table
-CREATE TABLE public.schedule (
-  id BIGSERIAL NOT NULL PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  scheduled_date DATE NOT NULL,
-  time_start TIME,
-  time_end TIME,
-  address TEXT,
-  district_id BIGINT REFERENCES public.districts(id) ON DELETE SET NULL,
-  sub_district_id BIGINT REFERENCES public.sub_districts(id) ON DELETE SET NULL,
-  note TEXT,
-  status VARCHAR(50) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed', 'cancelled')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT check_time_range CHECK (time_start IS NULL OR time_end IS NULL OR time_start < time_end)
+create table public.schedule (
+  id bigserial not null,
+  user_id uuid not null,
+  scheduled_date date not null,
+  time_start time without time zone null,
+  time_end time without time zone null,
+  address text null,
+  district_id bigint null,
+  sub_district_id bigint null,
+  note text null,
+  status character varying(50) not null default 'active'::character varying,
+  created_at timestamp with time zone null default CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone null default CURRENT_TIMESTAMP,
+  title character varying null,
+  constraint schedule_pkey primary key (id),
+  constraint schedule_district_id_fkey foreign KEY (district_id) references districts (id) on delete set null,
+  constraint schedule_sub_district_id_fkey foreign KEY (sub_district_id) references sub_districts (id) on delete set null,
+  constraint schedule_user_id_fkey foreign KEY (user_id) references users (id) on delete CASCADE,
+  constraint check_time_range check (
+    (
+      (time_start is null)
+      or (time_end is null)
+      or (time_start < time_end)
+    )
+  ),
+  constraint schedule_status_check check (
+    (
+      (status)::text = any (
+        (
+          array[
+            'active'::character varying,
+            'completed'::character varying,
+            'cancelled'::character varying
+          ]
+        )::text[]
+      )
+    )
+  )
 ) TABLESPACE pg_default;
 
--- Create indexes for common queries
-CREATE INDEX idx_schedule_user_id ON public.schedule(user_id);
-CREATE INDEX idx_schedule_scheduled_date ON public.schedule(scheduled_date);
-CREATE INDEX idx_schedule_district_id ON public.schedule(district_id);
-CREATE INDEX idx_schedule_sub_district_id ON public.schedule(sub_district_id);
-CREATE INDEX idx_schedule_status ON public.schedule(status);
-CREATE INDEX idx_schedule_user_date ON public.schedule(user_id, scheduled_date);
+create index IF not exists idx_schedule_user_id on public.schedule using btree (user_id) TABLESPACE pg_default;
 
--- Create trigger for updated_at
-CREATE OR REPLACE FUNCTION public.update_schedule_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = CURRENT_TIMESTAMP;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+create index IF not exists idx_schedule_scheduled_date on public.schedule using btree (scheduled_date) TABLESPACE pg_default;
 
-CREATE TRIGGER schedule_updated_at_trigger
-BEFORE UPDATE ON public.schedule
-FOR EACH ROW
-EXECUTE FUNCTION update_schedule_updated_at();
+create index IF not exists idx_schedule_district_id on public.schedule using btree (district_id) TABLESPACE pg_default;
 
+create index IF not exists idx_schedule_sub_district_id on public.schedule using btree (sub_district_id) TABLESPACE pg_default;
+
+create index IF not exists idx_schedule_status on public.schedule using btree (status) TABLESPACE pg_default;
+
+create index IF not exists idx_schedule_user_date on public.schedule using btree (user_id, scheduled_date) TABLESPACE pg_default;
+
+create trigger schedule_updated_at_trigger BEFORE
+update on schedule for EACH row
+execute FUNCTION update_schedule_updated_at ();
