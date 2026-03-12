@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/form/Input";
 import { Select } from "@/components/form/Select";
 import { Modal } from "@/components/ui/Modal";
+import { useAppToast } from "@/hooks/useAppToast";
 import { requireAuth } from "@/lib/auth/withAuth";
 import { useAuth } from "@/lib/providers/hooks/useAuthProvider";
 import {
@@ -35,6 +36,7 @@ export default function UsersPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   const { session } = useAuth();
+  const { showToast } = useAppToast();
   const currentUserRole = (session?.user as any)?.role;
   const isCurrentUserOwner = currentUserRole === "owner";
 
@@ -118,10 +120,12 @@ export default function UsersPage() {
         };
         console.log("📋 Updating user:", updateInput);
         await updateMutation.mutateAsync({ id: editingId, input: updateInput });
+        showToast("อัปเดตผู้ใช้สำเร็จ!", "success");
       } else {
         // Create new user
         if (!data.password) {
           console.warn("Password is required for new user");
+          showToast("กรุณากรอกรหัสผ่าน", "error");
           return;
         }
         const createInput: CreateUserInput = {
@@ -135,10 +139,14 @@ export default function UsersPage() {
         };
         console.log("📋 Creating user:", createInput);
         await createMutation.mutateAsync(createInput);
+        showToast("เพิ่มผู้ใช้สำเร็จ!", "success");
       }
       handleCloseModal();
     } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "เกิดข้อผิดพลาด";
       console.error("❌ Error saving user:", err);
+      showToast(errorMessage, "error");
     }
   };
 
@@ -146,8 +154,12 @@ export default function UsersPage() {
     if (!confirm("คุณต้องการลบผู้ใช้นี้ใช่หรือไม่?")) return;
     try {
       await deleteMutation.mutateAsync(id);
+      showToast("ลบผู้ใช้สำเร็จ!", "success");
     } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "เกิดข้อผิดพลาด";
       console.error("Error deleting user:", err);
+      showToast(errorMessage, "error");
     }
   };
 
