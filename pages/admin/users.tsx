@@ -9,6 +9,7 @@ import { Input } from "@/components/form/Input";
 import { Select } from "@/components/form/Select";
 import { Modal } from "@/components/ui/Modal";
 import { requireAuth } from "@/lib/auth/withAuth";
+import { useAuth } from "@/lib/providers/hooks/useAuthProvider";
 import {
   useUsers,
   useCreateUser,
@@ -23,6 +24,7 @@ interface FormData {
   last_name?: string;
   phone_number?: string;
   password?: string;
+  new_password?: string;
   role: "owner" | "admin" | "user";
   status: "active" | "inactive";
 }
@@ -30,6 +32,11 @@ interface FormData {
 export default function UsersPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const { session } = useAuth();
+  const currentUserRole = (session?.user as any)?.role;
+  const isCurrentUserOwner = currentUserRole === "owner";
 
   const {
     register,
@@ -43,6 +50,7 @@ export default function UsersPage() {
       last_name: "",
       phone_number: "",
       password: "",
+      new_password: "",
       role: "user",
       status: "active",
     },
@@ -59,6 +67,7 @@ export default function UsersPage() {
       const user = users.find((u) => u.id === userId);
       if (user) {
         setEditingId(userId);
+        setShowPassword(false);
         reset({
           username: user.username,
           first_name: user.first_name,
@@ -66,17 +75,20 @@ export default function UsersPage() {
           phone_number: user.phone_number,
           role: user.role,
           status: user.status,
+          new_password: "",
         });
       }
     } else {
       // Create mode - clear all fields
       setEditingId(null);
+      setShowPassword(false);
       reset({
         username: "",
         first_name: "",
         last_name: "",
         phone_number: "",
         password: "",
+        new_password: "",
         role: "user",
         status: "active",
       });
@@ -87,13 +99,14 @@ export default function UsersPage() {
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingId(null);
+    setShowPassword(false);
     reset();
   };
 
   const onSubmit = async (data: FormData) => {
     try {
       if (editingId) {
-        // Update user (without password change)
+        // Update user with optional password change
         const updateInput: UpdateUserInput = {
           username: data.username,
           first_name: data.first_name,
@@ -101,6 +114,7 @@ export default function UsersPage() {
           phone_number: data.phone_number,
           role: data.role,
           status: data.status,
+          ...(data.new_password && { password: data.new_password }),
         };
         console.log("📋 Updating user:", updateInput);
         await updateMutation.mutateAsync({ id: editingId, input: updateInput });
@@ -416,6 +430,49 @@ export default function UsersPage() {
               })}
               error={errors.password}
             />
+          )}
+
+          {editingId && isCurrentUserOwner && (
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                เปลี่ยนรหัสผ่าน
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="ปล่อยว่างหากไม่ต้องการเปลี่ยน"
+                  {...register("new_password")}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors"
+                  title={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
+                >
+                  <i
+                    className={`fa-solid ${
+                      showPassword ? "fa-eye-slash" : "fa-eye"
+                    }`}
+                  ></i>
+                </button>
+              </div>
+              {errors.new_password && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.new_password.message}
+                </p>
+              )}
+            </div>
+          )}
+
+          {editingId && !isCurrentUserOwner && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-sm text-blue-700 flex items-center gap-2">
+                <i className="fa-solid fa-lock"></i>
+                เฉพาะผู้ใช้ที่มีบทบาท "เจ้าของ"
+                เท่านั้นที่สามารถเปลี่ยนรหัสผ่านได้
+              </p>
+            </div>
           )}
 
           <Select

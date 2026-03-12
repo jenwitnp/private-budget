@@ -34,6 +34,7 @@ export interface UpdateUserInput {
   first_name?: string;
   last_name?: string;
   phone_number?: string;
+  password?: string; // For changing user password (owner role only)
   role?: "owner" | "admin" | "user";
   status?: "active" | "inactive";
 }
@@ -182,18 +183,28 @@ export async function updateUser(
   try {
     console.log("✏️ [USERS] Updating user:", id);
 
+    let updatePayload: any = {
+      ...(input.username && { username: input.username }),
+      ...(input.email && { email: input.email }),
+      ...(input.first_name && { first_name: input.first_name }),
+      ...(input.last_name && { last_name: input.last_name }),
+      ...(input.phone_number && { phone_number: input.phone_number }),
+      ...(input.role && { role: input.role }),
+      ...(input.status && { status: input.status }),
+      updated_at: new Date().toISOString(),
+    };
+
+    // Handle password change (owner role only)
+    if (input.password && input.password.trim() !== "") {
+      const bcrypt = require("bcryptjs");
+      const password_hash = await bcrypt.hash(input.password, 10);
+      updatePayload.password_hash = password_hash;
+      console.log("🔑 [USERS] Password updated for user:", id);
+    }
+
     const { data, error } = await (supabase as any)
       .from("users")
-      .update({
-        ...(input.username && { username: input.username }),
-        ...(input.email && { email: input.email }),
-        ...(input.first_name && { first_name: input.first_name }),
-        ...(input.last_name && { last_name: input.last_name }),
-        ...(input.phone_number && { phone_number: input.phone_number }),
-        ...(input.role && { role: input.role }),
-        ...(input.status && { status: input.status }),
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq("id", id)
       .select()
       .single();
