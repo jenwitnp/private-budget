@@ -46,6 +46,67 @@ export interface UpdateScheduleInput {
 }
 
 /**
+ * Thai month names for date formatting
+ */
+const THAI_MONTHS = {
+  1: "ม.ค",
+  2: "ก.พ",
+  3: "มี.ค",
+  4: "เม.ย",
+  5: "พ.ค",
+  6: "มิ.ย",
+  7: "ก.ค",
+  8: "ส.ค",
+  9: "ก.ย",
+  10: "ต.ค",
+  11: "พ.ย",
+  12: "ธ.ค",
+};
+
+/**
+ * Generate searchable keyword from schedule data
+ * Combines title, date, district, and sub-district into a single search string
+ * Example: "ประชุมรัฐสภา 13 เม.ย 2569 อำเภอท่าบ่อ ตำบลกองนาง"
+ */
+function generateScheduleKeyword(
+  title: string | null | undefined,
+  scheduledDate: string,
+  districtName: string | null | undefined,
+  subDistrictName: string | null | undefined,
+): string {
+  const parts: string[] = [];
+
+  // Add title
+  if (title) {
+    parts.push(title);
+  }
+
+  // Add formatted date (e.g., "13 เม.ย 2569")
+  try {
+    const date = new Date(scheduledDate);
+    const day = date.getDate();
+    const month = (THAI_MONTHS as any)[date.getMonth() + 1] || "?";
+    const thaiYear = date.getFullYear() + 543;
+    parts.push(`${day} ${month} ${thaiYear}`);
+  } catch (err) {
+    parts.push(scheduledDate);
+  }
+
+  // Add district name
+  if (districtName) {
+    parts.push(`อำเภอ${districtName}`);
+  }
+
+  // Add sub-district name
+  if (subDistrictName) {
+    parts.push(`ตำบล${subDistrictName}`);
+  }
+
+  // Join with space
+  return parts.join(" ");
+}
+
+/**
  * Get user's schedules for a specific month
  */
 export async function getSchedulesByMonth(
@@ -162,10 +223,6 @@ export async function createSchedule(
   error?: string;
 }> {
   try {
-    console.log("\n=== CREATE SCHEDULE START ===");
-    console.log("User ID:", userId);
-    console.log("Input received:", input);
-
     // Parse IDs
     const districtId = input.district_id
       ? parseInt(input.district_id, 10)
@@ -174,7 +231,45 @@ export async function createSchedule(
       ? parseInt(input.sub_district_id, 10)
       : null;
 
-    console.log("Parsed IDs:", { districtId, subDistrictId });
+    // Fetch district and sub-district names for keyword generation
+    let districtName = null;
+    let subDistrictName = null;
+
+    if (districtId) {
+      const { data: districtData, error: districtError } = await (
+        supabase as any
+      )
+        .from("districts")
+        .select("name")
+        .eq("id", districtId)
+        .single();
+
+      if (!districtError && districtData) {
+        districtName = districtData.name;
+      }
+    }
+
+    if (subDistrictId) {
+      const { data: subDistrictData, error: subDistrictError } = await (
+        supabase as any
+      )
+        .from("sub_districts")
+        .select("name")
+        .eq("id", subDistrictId)
+        .single();
+
+      if (!subDistrictError && subDistrictData) {
+        subDistrictName = subDistrictData.name;
+      }
+    }
+
+    // Generate searchable keyword
+    const keyword = generateScheduleKeyword(
+      input.title || null,
+      input.scheduled_date,
+      districtName,
+      subDistrictName,
+    );
 
     const insertPayload = {
       user_id: userId,
@@ -187,9 +282,8 @@ export async function createSchedule(
       sub_district_id: subDistrictId,
       note: input.note || null,
       status: input.status || "active",
+      key_word: keyword,
     };
-
-    console.log("Insert payload:", insertPayload);
 
     const { data, error } = await (supabase as any)
       .from("schedule")
@@ -197,17 +291,12 @@ export async function createSchedule(
       .select()
       .single();
 
-    console.log("Supabase response:", { data, error });
-
     if (error) {
-      console.error("❌ Supabase error:", error);
       return { success: false, error: error.message };
     }
 
-    console.log("✅ Schedule created successfully:", data);
     return { success: true, data };
   } catch (err) {
-    console.error("❌ Exception in createSchedule:", err);
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
     return { success: false, error: errorMessage };
   }
@@ -226,10 +315,26 @@ export async function updateSchedule(
   error?: string;
 }> {
   try {
-    console.log("\n=== UPDATE SCHEDULE START ===");
-    console.log("Schedule ID:", scheduleId);
-    console.log("User ID:", userId);
-    console.log("Input:", input);
+    // First, fetch the current schedule to get existing values
+    const { data: currentSchedule, error: fetchError } = await (supabase as any)
+      .from("schedule")
+      .select(
+        `
+        id, user_id, scheduled_date, title, district_id, sub_district_id,
+        districts (name),
+        sub_districts (name)
+      `,
+      )
+      .eq("id", scheduleId)
+      .eq("user_id", userId)
+      .single();
+
+    if (fetchError || !currentSchedule) {
+      return {
+        success: false,
+        error: "Schedule not found or unauthorized",
+      };
+    }
 
     const updatePayload: any = {};
 
@@ -251,7 +356,59 @@ export async function updateSchedule(
     if (input.note !== undefined) updatePayload.note = input.note;
     if (input.status !== undefined) updatePayload.status = input.status;
 
-    console.log("Update payload:", updatePayload);
+    // Generate new keyword based on updated values
+    const titleForKeyword =
+      input.title !== undefined ? input.title : currentSchedule.title || null;
+    const dateForKeyword =
+      input.scheduled_date !== undefined
+        ? input.scheduled_date
+        : currentSchedule.scheduled_date;
+
+    // Fetch updated district and sub-district names if IDs changed
+    let districtName = currentSchedule.districts?.name || null;
+    let subDistrictName = currentSchedule.sub_districts?.name || null;
+
+    if (input.district_id !== undefined) {
+      const districtId = input.district_id
+        ? parseInt(input.district_id, 10)
+        : null;
+      if (districtId) {
+        const { data: districtData } = await (supabase as any)
+          .from("districts")
+          .select("name")
+          .eq("id", districtId)
+          .single();
+        districtName = districtData?.name || null;
+      } else {
+        districtName = null;
+      }
+    }
+
+    if (input.sub_district_id !== undefined) {
+      const subDistrictId = input.sub_district_id
+        ? parseInt(input.sub_district_id, 10)
+        : null;
+      if (subDistrictId) {
+        const { data: subDistrictData } = await (supabase as any)
+          .from("sub_districts")
+          .select("name")
+          .eq("id", subDistrictId)
+          .single();
+        subDistrictName = subDistrictData?.name || null;
+      } else {
+        subDistrictName = null;
+      }
+    }
+
+    // Generate updated keyword
+    const keyword = generateScheduleKeyword(
+      titleForKeyword,
+      dateForKeyword,
+      districtName,
+      subDistrictName,
+    );
+
+    updatePayload.key_word = keyword;
 
     const { data, error } = await (supabase as any)
       .from("schedule")
@@ -269,10 +426,7 @@ export async function updateSchedule(
       )
       .single();
 
-    console.log("Supabase response:", { data, error });
-
     if (error) {
-      console.error("❌ Update error:", error);
       return { success: false, error: error.message };
     }
 
@@ -287,10 +441,8 @@ export async function updateSchedule(
       sub_district_name: data?.sub_districts?.name,
     };
 
-    console.log("✅ Schedule updated successfully:", formattedData);
     return { success: true, data: formattedData };
   } catch (err) {
-    console.error("❌ Exception in updateSchedule:", err);
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
     return { success: false, error: errorMessage };
   }

@@ -12,6 +12,7 @@ create table public.schedule (
   created_at timestamp with time zone null default CURRENT_TIMESTAMP,
   updated_at timestamp with time zone null default CURRENT_TIMESTAMP,
   title character varying null,
+  key_word character varying null,
   constraint schedule_pkey primary key (id),
   constraint schedule_district_id_fkey foreign KEY (district_id) references districts (id) on delete set null,
   constraint schedule_sub_district_id_fkey foreign KEY (sub_district_id) references sub_districts (id) on delete set null,
