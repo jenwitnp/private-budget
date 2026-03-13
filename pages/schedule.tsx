@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
+import { useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -56,6 +57,7 @@ export const PROVINCES = ["หนองคาย"];
 export default function SchedulePage() {
   const { data: session } = useSession();
   const toast = useAppToast();
+  const queryClient = useQueryClient();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -232,6 +234,12 @@ export default function SchedulePage() {
         ? "อัปเดตตารางการทำงานสำเร็จ"
         : "เพิ่มตารางการทำงานสำเร็จ";
       toast.showToast(successMessage, "success");
+
+      // Invalidate schedule queries to refresh calendar immediately
+      await queryClient.invalidateQueries({
+        queryKey: ["schedules"],
+        refetchType: "all",
+      });
 
       handleCloseModal();
     } catch (err) {
