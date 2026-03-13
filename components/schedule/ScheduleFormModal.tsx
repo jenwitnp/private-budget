@@ -161,65 +161,59 @@ export function ScheduleFormModal({
           error={errors.address}
         />
 
-        {/* Province Field */}
-        <Select
-          label="จังหวัด"
-          options={provinces.map((p) => ({ value: p, label: p }))}
-          value={formState.province}
-          onChange={(e) =>
-            setFormState((prev) => ({
-              ...prev,
-              province: e.target.value,
-            }))
-          }
-        />
+        {/* District and Sub-District Fields */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* District Field */}
+          <div>
+            <Select
+              label="อำเภอ *"
+              placeholder="กรุณาเลือก"
+              options={
+                districts?.map((d) => ({ value: d.id, label: d.name })) || []
+              }
+              value={watch("district_id") || ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                // Update both form state and React Hook Form
+                setFormState((prev) => ({
+                  ...prev,
+                  district: value,
+                }));
+                setValue("district_id", value);
+                // Reset sub-district when district changes
+                setValue("sub_district_id", "");
+              }}
+              disabled={!districts}
+            />
+            {errors.district_id && (
+              <p className="text-red-500 text-sm -mt-3">
+                {errors.district_id.message}
+              </p>
+            )}
+          </div>
 
-        {/* District Field */}
-        <Select
-          label="อำเภอ *"
-          placeholder="กรุณาเลือก"
-          options={
-            districts?.map((d) => ({ value: d.id, label: d.name })) || []
-          }
-          value={watch("district_id") || ""}
-          onChange={(e) => {
-            const value = e.target.value;
-            // Update both form state and React Hook Form
-            setFormState((prev) => ({
-              ...prev,
-              district: value,
-            }));
-            setValue("district_id", value);
-            // Reset sub-district when district changes
-            setValue("sub_district_id", "");
-          }}
-          disabled={!districts}
-        />
-        {errors.district_id && (
-          <p className="text-red-500 text-sm -mt-3">
-            {errors.district_id.message}
-          </p>
-        )}
-
-        {/* Sub-District Field */}
-        <Select
-          label="ตำบล *"
-          placeholder="กรุณาเลือก"
-          options={
-            subDistricts?.map((s) => ({ value: s.id, label: s.name })) || []
-          }
-          value={watch("sub_district_id") || ""}
-          onChange={(e) => {
-            const fieldValue = e.target.value;
-            setValue("sub_district_id", fieldValue);
-          }}
-          disabled={!subDistricts}
-        />
-        {errors.sub_district_id && (
-          <p className="text-red-500 text-sm -mt-3">
-            {errors.sub_district_id.message}
-          </p>
-        )}
+          {/* Sub-District Field */}
+          <div>
+            <Select
+              label="ตำบล *"
+              placeholder="กรุณาเลือก"
+              options={
+                subDistricts?.map((s) => ({ value: s.id, label: s.name })) || []
+              }
+              value={watch("sub_district_id") || ""}
+              onChange={(e) => {
+                const fieldValue = e.target.value;
+                setValue("sub_district_id", fieldValue);
+              }}
+              disabled={!subDistricts}
+            />
+            {errors.sub_district_id && (
+              <p className="text-red-500 text-sm -mt-3">
+                {errors.sub_district_id.message}
+              </p>
+            )}
+          </div>
+        </div>
 
         {/* Show Withdraw Form Checkbox */}
         <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">

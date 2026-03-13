@@ -73,6 +73,7 @@ export default function SchedulePage() {
   const [subDistricts, setSubDistricts] = useState<
     { id: string; name: string }[] | null
   >(null);
+  const [submitLoading, setSubmitLoading] = useState(false);
 
   const {
     register,
@@ -195,9 +196,12 @@ export default function SchedulePage() {
 
   const onSubmit = async (data: FormData) => {
     try {
+      setSubmitLoading(true);
+
       const userId = (session?.user as any)?.id;
       if (!userId) {
         toast.showToast("User not authenticated", "error");
+        setSubmitLoading(false);
         return;
       }
 
@@ -226,6 +230,7 @@ export default function SchedulePage() {
 
       if (!result.success) {
         toast.showToast(result.error || "เกิดข้อผิดพลาดในการบันทึก", "error");
+        setSubmitLoading(false);
         return;
       }
 
@@ -246,6 +251,8 @@ export default function SchedulePage() {
       const errorMessage =
         err instanceof Error ? err.message : "เกิดข้อผิดพลาดที่ไม่ทราบ";
       toast.showToast(errorMessage, "error");
+    } finally {
+      setSubmitLoading(false);
     }
   };
 
@@ -550,7 +557,7 @@ export default function SchedulePage() {
         isOpen={showModal}
         onClose={handleCloseModal}
         onSubmit={onSubmit}
-        isLoading={createMutation.isPending || updateMutation.isPending}
+        isLoading={submitLoading}
         isEditing={!!editingId}
         register={register}
         handleSubmit={handleSubmit}
