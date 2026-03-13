@@ -14,44 +14,25 @@ import {
 } from "@/server/schedule.server";
 
 export function useSchedulesByMonth(year: number, month: number) {
-  const { data: session } = useSession();
-  const userId = (session?.user as any)?.id;
-
   return useQuery({
-    queryKey: ["schedules", "month", year, month, userId],
+    queryKey: ["schedules", "month", year, month],
     queryFn: () =>
-      userId
-        ? getSchedulesByMonth(userId, year, month).then((res) => res.data || [])
-        : Promise.resolve([]),
-    enabled: !!userId,
+      getSchedulesByMonth(year, month).then((res) => res.data || []),
   });
 }
 
 export function useSchedulesByDate(date: string) {
-  const { data: session } = useSession();
-  const userId = (session?.user as any)?.id;
-
   return useQuery({
-    queryKey: ["schedules", "date", date, userId],
-    queryFn: () =>
-      userId
-        ? getSchedulesByDate(userId, date).then((res) => res.data || [])
-        : Promise.resolve([]),
-    enabled: !!userId,
+    queryKey: ["schedules", "date", date],
+    queryFn: () => getSchedulesByDate(date).then((res) => res.data || []),
   });
 }
 
 export function useUpcomingSchedules(daysAhead: number = 7) {
-  const { data: session } = useSession();
-  const userId = (session?.user as any)?.id;
-
   return useQuery({
-    queryKey: ["schedules", "upcoming", daysAhead, userId],
+    queryKey: ["schedules", "upcoming", daysAhead],
     queryFn: () =>
-      userId
-        ? getUpcomingSchedules(userId, daysAhead).then((res) => res.data || [])
-        : Promise.resolve([]),
-    enabled: !!userId,
+      getUpcomingSchedules(daysAhead).then((res) => res.data || []),
   });
 }
 

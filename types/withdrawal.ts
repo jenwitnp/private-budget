@@ -12,7 +12,6 @@ export interface WithdrawFormData {
   amount: string | number;
   description?: string;
   images?: File[];
-  schedule_id?: string;
 }
 
 export interface WithdrawalValidationError {

@@ -6,6 +6,8 @@ export interface Schedule {
   id: string;
   user_id: string;
   user_name?: string;
+  first_name?: string;
+  last_name?: string;
   scheduled_date: string;
   time_start?: string;
   time_end?: string;
@@ -43,6 +45,7 @@ export interface UpdateScheduleInput {
   sub_district_id?: string;
   note?: string;
   status?: "active" | "completed" | "cancelled";
+  transaction_id?: string;
 }
 
 /**
@@ -107,10 +110,9 @@ function generateScheduleKeyword(
 }
 
 /**
- * Get user's schedules for a specific month
+ * Get all schedules for a specific month (shared work calendar)
  */
 export async function getSchedulesByMonth(
-  userId: string,
   year: number,
   month: number,
 ): Promise<{
@@ -133,7 +135,6 @@ export async function getSchedulesByMonth(
         sub_districts (name)
       `,
       )
-      .eq("user_id", userId)
       .gte("scheduled_date", startDate)
       .lte("scheduled_date", endDate)
       .order("scheduled_date", { ascending: true });
@@ -149,6 +150,8 @@ export async function getSchedulesByMonth(
       return {
         ...schedule,
         user_name: userName || "Unknown User",
+        first_name: firstName,
+        last_name: lastName,
         district_name: schedule.districts?.name,
         sub_district_name: schedule.sub_districts?.name,
       };
@@ -162,12 +165,9 @@ export async function getSchedulesByMonth(
 }
 
 /**
- * Get schedule by date
+ * Get all schedules by date (shared work calendar)
  */
-export async function getSchedulesByDate(
-  userId: string,
-  date: string,
-): Promise<{
+export async function getSchedulesByDate(date: string): Promise<{
   success: boolean;
   data?: Schedule[];
   error?: string;
@@ -184,7 +184,6 @@ export async function getSchedulesByDate(
         sub_districts (name)
       `,
       )
-      .eq("user_id", userId)
       .eq("scheduled_date", date)
       .order("time_start", { ascending: true });
 
@@ -199,6 +198,8 @@ export async function getSchedulesByDate(
       return {
         ...schedule,
         user_name: userName || "Unknown User",
+        first_name: firstName,
+        last_name: lastName,
         district_name: schedule.districts?.name,
         sub_district_name: schedule.sub_districts?.name,
       };
@@ -355,6 +356,8 @@ export async function updateSchedule(
         : null;
     if (input.note !== undefined) updatePayload.note = input.note;
     if (input.status !== undefined) updatePayload.status = input.status;
+    if (input.transaction_id !== undefined)
+      updatePayload.transaction_id = input.transaction_id || null;
 
     // Generate new keyword based on updated values
     const titleForKeyword =
@@ -437,6 +440,8 @@ export async function updateSchedule(
     const formattedData = {
       ...data,
       user_name: userName || "Unknown User",
+      first_name: firstName,
+      last_name: lastName,
       district_name: data?.districts?.name,
       sub_district_name: data?.sub_districts?.name,
     };
@@ -477,13 +482,10 @@ export async function deleteSchedule(
 }
 
 /**
- * Search schedules by keyword field
+ * Search all schedules by keyword field (shared work calendar)
  * Uses pre-computed key_word field for fast search
  */
-export async function searchSchedules(
-  userId: string,
-  query: string,
-): Promise<{
+export async function searchSchedules(query: string): Promise<{
   success: boolean;
   data?: Schedule[];
   error?: string;
@@ -492,8 +494,6 @@ export async function searchSchedules(
     if (!query.trim()) {
       return { success: true, data: [] };
     }
-
-    const today = new Date().toISOString().split("T")[0];
 
     const { data, error } = await (supabase as any)
       .from("schedule")
@@ -506,10 +506,6 @@ export async function searchSchedules(
         sub_districts (name)
       `,
       )
-      //   .eq("user_id", userId)
-      //   .eq("status", "active")
-      //   .gte("scheduled_date", today)
-      //   .order("scheduled_date", { ascending: true })
       .limit(10);
 
     if (error) {
@@ -530,6 +526,8 @@ export async function searchSchedules(
       return {
         ...schedule,
         user_name: userName || "Unknown User",
+        first_name: firstName,
+        last_name: lastName,
         district_name: schedule.districts?.name,
         sub_district_name: schedule.sub_districts?.name,
       };
@@ -543,12 +541,9 @@ export async function searchSchedules(
 }
 
 /**
- * Get upcoming schedules for a user
+ * Get all upcoming schedules (shared work calendar)
  */
-export async function getUpcomingSchedules(
-  userId: string,
-  daysAhead: number = 7,
-): Promise<{
+export async function getUpcomingSchedules(daysAhead: number = 7): Promise<{
   success: boolean;
   data?: Schedule[];
   error?: string;
@@ -570,7 +565,6 @@ export async function getUpcomingSchedules(
         sub_districts (name)
       `,
       )
-      .eq("user_id", userId)
       .gte("scheduled_date", today)
       .lte("scheduled_date", futureDate)
       .eq("status", "active")
@@ -587,6 +581,8 @@ export async function getUpcomingSchedules(
       return {
         ...schedule,
         user_name: userName || "Unknown User",
+        first_name: firstName,
+        last_name: lastName,
         district_name: schedule.districts?.name,
         sub_district_name: schedule.sub_districts?.name,
       };

@@ -10,6 +10,7 @@ import { menuItems, adminItems, type MenuItem } from "@/lib/config/menuItems";
 import { fetchTransactionStatsAction } from "@/actions/stats";
 import { fetchComplaintStatsAction } from "@/actions/complaints";
 import { fetchScheduleStatsAction } from "@/actions/schedules";
+import { UserProfile } from "@/components/UserProfile";
 
 interface MenuTileProps {
   item: MenuItem;
@@ -20,6 +21,7 @@ interface MenuTileProps {
 
 interface GridMenuProps {
   onClose?: () => void;
+  UserProfile?: boolean;
 }
 
 function MenuTile({ item, isActive, count }: MenuTileProps) {
@@ -77,10 +79,20 @@ function MenuTile({ item, isActive, count }: MenuTileProps) {
   );
 }
 
-export function GridMenu({ onClose }: GridMenuProps) {
+export function GridMenu({
+  onClose,
+  UserProfile: showUserProfile = true,
+}: GridMenuProps) {
   const router = useRouter();
   const { data: session } = useSession();
   const userRole = session?.user?.role as UserRole;
+
+  // Get display name from session
+  const displayName =
+    session?.user?.name ||
+    `${(session?.user as any)?.first_name || ""} ${(session?.user as any)?.last_name || ""}`.trim() ||
+    (session?.user as any)?.username ||
+    "ผู้ใช้";
 
   // Fetch transaction stats using RPC with permission filtering
   const { data: transactionStats } = useQuery({
@@ -149,6 +161,13 @@ export function GridMenu({ onClose }: GridMenuProps) {
 
   return (
     <div className="w-full">
+      {/* User Profile Section */}
+      {showUserProfile && (
+        <div className="mb-8 p-4 bg-white rounded-xl border border-slate-200">
+          <UserProfile displayName={displayName} session={session} />
+        </div>
+      )}
+
       {/* Main Grid Menu */}
       <div className="max-w-7xl mx-auto">
         {/* User Menu */}

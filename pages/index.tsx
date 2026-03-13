@@ -16,7 +16,7 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <GridMenu />
+      <GridMenu UserProfile={false} />
     </Layout>
   );
 }

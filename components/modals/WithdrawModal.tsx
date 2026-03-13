@@ -14,7 +14,6 @@ import { ImageUploadArea } from "@/components/form/ImageUploadArea";
 import { ImagePreviewGallery } from "@/components/form/ImagePreviewGallery";
 import { FormButtons } from "@/components/form/FormButtons";
 import { Modal } from "@/components/ui/Modal";
-import { Autocomplete } from "@/components/form/Autocomplete";
 import { useActiveCategories } from "@/hooks/useCategories";
 import { useActiveBankAccounts } from "@/hooks/useBankAccounts";
 import {
@@ -40,10 +39,6 @@ export function WithdrawModal({
   const [uploadedImages, setUploadedImages] = useState<
     Array<{ preview: string; file: File }>
   >([]);
-  const [selectedSchedule, setSelectedSchedule] = useState<any>(null);
-  const [scheduleSearchInput, setScheduleSearchInput] = useState("");
-  const [scheduleResults, setScheduleResults] = useState<any[]>([]);
-  const [scheduleSearchLoading, setScheduleSearchLoading] = useState(false);
   const { data: categories, isLoading: categoriesLoading } =
     useActiveCategories();
   const { data: bankAccounts, isLoading: bankAccountsLoading } =
@@ -67,7 +62,6 @@ export function WithdrawModal({
       sub_district_id: "",
       amount: "",
       description: "",
-      schedule_id: "",
     },
   });
 
@@ -80,43 +74,6 @@ export function WithdrawModal({
 
   const amountValue = watch("amount");
   const paymentMethodValue = watch("payment_method");
-
-  // Handle schedule search on keyDown - fetch fresh API data every keystroke
-  const handleScheduleKeyDown = async (
-    e: React.KeyboardEvent<HTMLInputElement>,
-  ) => {
-    const query = (e.target as HTMLInputElement).value;
-    setScheduleSearchInput(query);
-
-    if (!query.trim()) {
-      setScheduleResults([]);
-      return;
-    }
-
-    setScheduleSearchLoading(true);
-    try {
-      const searchParams = new URLSearchParams({ q: query });
-      const response = await fetch(
-        `/api/schedules/search?${searchParams.toString()}`,
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && Array.isArray(data.data)) {
-          setScheduleResults(data.data);
-        } else {
-          setScheduleResults([]);
-        }
-      } else {
-        setScheduleResults([]);
-      }
-    } catch (error) {
-      console.error("Failed to fetch schedules:", error);
-      setScheduleResults([]);
-    } finally {
-      setScheduleSearchLoading(false);
-    }
-  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (acceptedFiles) => {
@@ -142,7 +99,6 @@ export function WithdrawModal({
   const handleClose = () => {
     reset();
     setError(null);
-    setSelectedSchedule(null);
     uploadedImages.forEach((img) => URL.revokeObjectURL(img.preview));
     setUploadedImages([]);
     onClose();
@@ -267,47 +223,6 @@ export function WithdrawModal({
             required
           />
         </div>
-
-        {/* Schedule Autocomplete Selection */}
-        <Autocomplete
-          label="เลือกตารางการทำงาน (ไม่บังคับ)"
-          placeholder="ค้นหาตารางการทำงาน..."
-          data={scheduleResults}
-          displayKey="title"
-          valueKey="id"
-          value={selectedSchedule}
-          searchValue={scheduleSearchInput}
-          isLoading={scheduleSearchLoading}
-          onInputChange={(value) => {
-            setScheduleSearchInput(value);
-          }}
-          onChange={(schedule) => {
-            setSelectedSchedule(schedule);
-            if (schedule) {
-              setValue("schedule_id", schedule.id);
-              setScheduleResults([]);
-              setScheduleSearchInput(schedule.title); // Display selected schedule name
-            } else {
-              setValue("schedule_id", "");
-              setScheduleResults([]);
-              setScheduleSearchInput("");
-            }
-          }}
-          onKeyDown={handleScheduleKeyDown}
-          renderItem={(schedule: any) => (
-            <div className="flex flex-col">
-              <span className="font-medium">{schedule.title}</span>
-              <span className="text-xs text-slate-500">
-                {new Date(schedule.scheduled_date).toLocaleDateString("th-TH", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}{" "}
-                {schedule.time_start && `- ${schedule.time_start}`}
-              </span>
-            </div>
-          )}
-        />
 
         {/* districts & sub_districts */}
         <div className="grid grid-cols-2 gap-4">

@@ -8,8 +8,8 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/form/Input";
 import { Select } from "@/components/form/Select";
-import { Modal } from "@/components/ui/Modal";
-import { ScheduleCard } from "@/components/ScheduleCard";
+import { ScheduleFormModal } from "@/components/schedule/ScheduleFormModal";
+import { ScheduleCard } from "@/components/schedule/ScheduleCard";
 import { requireAuth } from "@/lib/auth/withAuth";
 import { useAppToast } from "@/hooks/useAppToast";
 import {
@@ -23,13 +23,14 @@ import {
   getDistrictsByProvince,
   getSubDistrictsByDistrict,
 } from "@/server/districts.server";
+import { submitScheduleAction } from "@/actions/schedules";
 import type {
   CreateScheduleInput,
   UpdateScheduleInput,
   Schedule,
 } from "@/server/schedule.server";
 
-interface FormData {
+export interface FormData {
   scheduled_date: string;
   time_start?: string;
   time_end?: string;
@@ -39,14 +40,18 @@ interface FormData {
   sub_district_id?: string;
   note?: string;
   status: "active" | "completed" | "cancelled";
+  show_withdraw_form?: boolean;
+  payment_method?: string;
+  bankAccountId?: string;
+  amount?: string;
 }
 
-interface FormState {
+export interface FormState {
   province: string;
   district: string;
 }
 
-const PROVINCES = ["หนองคาย"];
+export const PROVINCES = ["หนองคาย"];
 
 export default function SchedulePage() {
   const { data: session } = useSession();
@@ -81,6 +86,10 @@ export default function SchedulePage() {
       status: "active",
       district_id: "",
       sub_district_id: "",
+      show_withdraw_form: false,
+      payment_method: "",
+      bankAccountId: "",
+      amount: "",
     },
   });
 
@@ -115,7 +124,7 @@ export default function SchedulePage() {
         setFormState((prev) => ({ ...prev, district: "" }));
         setSubDistricts(null);
       } catch (error) {
-        console.error("Error loading districts:", error);
+        // Error loading districts
       }
     };
     loadDistricts();
@@ -126,17 +135,11 @@ export default function SchedulePage() {
     const loadSubDistricts = async () => {
       if (formState.district) {
         try {
-          console.log(
-            "Loading sub-districts for district:",
-            formState.district,
-          );
           const data = await getSubDistrictsByDistrict(formState.district);
-          console.log("Sub-districts loaded:", data);
           setSubDistricts(
             data.map((s) => ({ id: s.id.toString(), name: s.name })),
           );
         } catch (error) {
-          console.error("Error loading sub-districts:", error);
           setSubDistricts([]);
         }
       } else {
@@ -190,46 +193,36 @@ export default function SchedulePage() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      console.log("\n=== SCHEDULE FORM SUBMIT START ===");
-      console.log("Form data received:", data);
-      console.log("✅ district_id from form:", data.district_id);
-      console.log("✅ sub_district_id from form:", data.sub_district_id);
-      console.log("Current user ID:", (session?.user as any)?.id);
-      console.log("Current user:", session?.user);
-
-      const payload = {
-        scheduled_date: data.scheduled_date,
-        time_start: data.time_start || undefined,
-        time_end: data.time_end || undefined,
-        title: data.title || undefined,
-        address: data.address || undefined,
-        district_id: data.district_id || undefined,
-        sub_district_id: data.sub_district_id || undefined,
-        note: data.note || undefined,
-        status: data.status,
-      };
-
-      console.log("Payload prepared:", payload);
-      console.log("Edit mode:", !!editingId, "ID:", editingId);
-
-      let result;
-      if (editingId) {
-        console.log("Calling updateMutation...");
-        result = await updateMutation.mutateAsync(
-          payload as UpdateScheduleInput,
-        );
-      } else {
-        console.log("Calling createMutation...");
-        result = await createMutation.mutateAsync(
-          payload as CreateScheduleInput,
-        );
+      const userId = (session?.user as any)?.id;
+      if (!userId) {
+        toast.showToast("User not authenticated", "error");
+        return;
       }
 
-      console.log("Mutation result:", result);
+      // Debug: Log form data before submission
+      console.log("📝 FORM DATA BEFORE SUBMISSION:", {
+        scheduled_date: data.scheduled_date,
+        title: data.title,
+        address: data.address,
+        district_id: data.district_id,
+        sub_district_id: data.sub_district_id,
+        status: data.status,
+        show_withdraw_form: data.show_withdraw_form,
+        payment_method: data.payment_method,
+        bankAccountId: data.bankAccountId,
+        amount: data.amount,
+      });
 
-      // Check if mutation was successful
+      // ============================================
+      // NEW FLOW: Form Submit -> Schedule Action -> Log Request Data -> Server
+      // ============================================
+      const result = await submitScheduleAction(
+        userId,
+        data,
+        editingId || undefined,
+      );
+
       if (!result.success) {
-        console.error("❌ Mutation failed:", result.error);
         toast.showToast(result.error || "เกิดข้อผิดพลาดในการบันทึก", "error");
         return;
       }
@@ -239,16 +232,11 @@ export default function SchedulePage() {
         ? "อัปเดตตารางการทำงานสำเร็จ"
         : "เพิ่มตารางการทำงานสำเร็จ";
       toast.showToast(successMessage, "success");
-      console.log("Submit successful, closing modal");
+
       handleCloseModal();
     } catch (err) {
-      console.error("❌ Error saving schedule:", err);
       const errorMessage =
         err instanceof Error ? err.message : "เกิดข้อผิดพลาดที่ไม่ทราบ";
-      console.error("Error details:", {
-        message: errorMessage,
-        stack: (err as any)?.stack,
-      });
       toast.showToast(errorMessage, "error");
     }
   };
@@ -260,14 +248,12 @@ export default function SchedulePage() {
       const result = await deleteMutation.mutateAsync(id);
 
       if (!result.success) {
-        console.error("❌ Delete failed:", result.error);
         toast.showToast(result.error || "เกิดข้อผิดพลาดในการลบ", "error");
         return;
       }
 
       toast.showToast("ลบตารางการทำงานสำเร็จ", "success");
     } catch (err) {
-      console.error("Error deleting schedule:", err);
       const errorMessage =
         err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการลบ";
       toast.showToast(errorMessage, "error");
@@ -552,230 +538,23 @@ export default function SchedulePage() {
       )}
 
       {/* Add/Edit Schedule Modal */}
-      <Modal
+      <ScheduleFormModal
         isOpen={showModal}
         onClose={handleCloseModal}
-        title={editingId ? "แก้ไขตารางการทำงาน" : "เพิ่มตารางการทำงาน"}
-        size="md"
+        onSubmit={onSubmit}
         isLoading={createMutation.isPending || updateMutation.isPending}
-        closeOnBackdropClick={false}
-      >
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          noValidate
-          className="p-6 space-y-4"
-        >
-          {/* Date Field */}
-          <Input
-            label="วันที่ *"
-            type="date"
-            register={register("scheduled_date", {
-              required: "กรุณาเลือกวันที่",
-            })}
-            error={errors.scheduled_date}
-          />
-
-          {/* Time Fields */}
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="เวลาเริ่ม *"
-              type="time"
-              register={register("time_start", {
-                required: "กรุณาเลือกเวลาเริ่ม",
-                validate: (value) => {
-                  if (!value) return true;
-                  const timeEnd = watch("time_end");
-                  if (timeEnd && value >= timeEnd) {
-                    return "เวลาเริ่มต้องน้อยกว่าเวลาสิ้นสุด";
-                  }
-                  return true;
-                },
-              })}
-              error={errors.time_start}
-            />
-            <Input
-              label="เวลาสิ้นสุด *"
-              type="time"
-              register={register("time_end", {
-                required: "กรุณาเลือกเวลาสิ้นสุด",
-                validate: (value) => {
-                  if (!value) return true;
-                  const timeStart = watch("time_start");
-                  if (timeStart && value <= timeStart) {
-                    return "เวลาสิ้นสุดต้องมากกว่าเวลาเริ่ม";
-                  }
-                  return true;
-                },
-              })}
-              error={errors.time_end}
-            />
-          </div>
-          {/* Title Field */}
-          <Input
-            label="ชื่ออีเว้นท์ *"
-            placeholder="เช่น ประชุมทีมงาน, ตรวจสอบอุปกรณ์"
-            register={register("title", {
-              required: "กรุณากรอกชื่ออีเว้นท์",
-              maxLength: {
-                value: 255,
-                message: "ชื่ออีเว้นท์ต้องไม่เกิน 255 ตัวอักษร",
-              },
-            })}
-            error={errors.title}
-          />
-          {/* Address Field */}
-          <Input
-            label="ที่อยู่ *"
-            placeholder="เช่น 123/4 ซอย 5 ถนนประเทศไทย"
-            register={register("address", {
-              required: "กรุณากรอกที่อยู่",
-              maxLength: {
-                value: 255,
-                message: "ที่อยู่ต้องไม่เกิน 255 ตัวอักษร",
-              },
-            })}
-            error={errors.address}
-          />
-
-          {/* Province Field */}
-          <Select
-            label="จังหวัด"
-            options={PROVINCES.map((p) => ({ value: p, label: p }))}
-            value={formState.province}
-            onChange={(e) =>
-              setFormState((prev) => ({
-                ...prev,
-                province: e.target.value,
-              }))
-            }
-          />
-
-          {/* District Field */}
-          <Select
-            label="อำเภอ *"
-            placeholder="กรุณาเลือก"
-            options={
-              districts?.map((d) => ({ value: d.id, label: d.name })) || []
-            }
-            value={watch("district_id") || ""}
-            onChange={(e) => {
-              const value = e.target.value;
-              // Update both form state and React Hook Form
-              setFormState((prev) => ({
-                ...prev,
-                district: value,
-              }));
-              setValue("district_id", value);
-              // Reset sub-district when district changes
-              setValue("sub_district_id", "");
-            }}
-            disabled={!districts}
-          />
-          {errors.district_id && (
-            <p className="text-red-500 text-sm -mt-3">
-              {errors.district_id.message}
-            </p>
-          )}
-
-          {/* Sub-District Field */}
-          <Select
-            label="ตำบล *"
-            placeholder="กรุณาเลือก"
-            options={
-              subDistricts?.map((s) => ({ value: s.id, label: s.name })) || []
-            }
-            value={watch("sub_district_id") || ""}
-            onChange={(e) => {
-              const fieldValue = e.target.value;
-              setValue("sub_district_id", fieldValue);
-            }}
-            disabled={!subDistricts}
-          />
-          {errors.sub_district_id && (
-            <p className="text-red-500 text-sm -mt-3">
-              {errors.sub_district_id.message}
-            </p>
-          )}
-
-          {/* Note Field */}
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
-              หมายเหตุ
-            </label>
-            <textarea
-              {...register("note", {
-                maxLength: {
-                  value: 500,
-                  message: "หมายเหตุต้องไม่เกิน 500 ตัวอักษร",
-                },
-              })}
-              placeholder="เช่น เตรียมอุปกรณ์ XYZ, หารือเรื่อง ABC"
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent resize-none transition-colors text-slate-800 ${
-                errors.note
-                  ? "border-red-300 focus:ring-red-500"
-                  : "border-slate-300 focus:ring-emerald-500"
-              }`}
-              rows={3}
-            ></textarea>
-            {errors.note && (
-              <p className="text-red-500 text-sm mt-1">{errors.note.message}</p>
-            )}
-          </div>
-
-          {/* Status Field */}
-          <Select
-            label="สถานะ *"
-            options={[
-              { value: "active", label: "กำลังดำเนินการ" },
-              { value: "completed", label: "เสร็จสิ้น" },
-              { value: "cancelled", label: "ยกเลิก" },
-            ]}
-            register={register("status", {
-              required: "กรุณาเลือกสถานะ",
-            })}
-            error={errors.status}
-          />
-
-          {/* Validation Summary - Show if there are errors */}
-          {Object.keys(errors).length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <p className="text-red-700 text-sm font-medium flex items-center gap-2">
-                <i className="fa-solid fa-exclamation-circle"></i>
-                กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง
-              </p>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex gap-2 pt-4 border-t border-slate-200">
-            <button
-              type="button"
-              onClick={handleCloseModal}
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="flex-1 py-2.5 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              ยกเลิก
-            </button>
-            <button
-              type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-            >
-              {createMutation.isPending || updateMutation.isPending ? (
-                <>
-                  <i className="fa-solid fa-spinner fa-spin"></i>
-                  กำลังบันทึก...
-                </>
-              ) : (
-                <>
-                  <i className="fa-solid fa-save"></i>
-                  บันทึก
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </Modal>
+        isEditing={!!editingId}
+        register={register}
+        handleSubmit={handleSubmit}
+        watch={watch}
+        setValue={setValue}
+        errors={errors}
+        formState={formState}
+        setFormState={setFormState}
+        districts={districts}
+        subDistricts={subDistricts}
+        provinces={PROVINCES}
+      />
     </Layout>
   );
 }

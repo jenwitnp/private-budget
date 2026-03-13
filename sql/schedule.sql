@@ -13,17 +13,12 @@ create table public.schedule (
   updated_at timestamp with time zone null default CURRENT_TIMESTAMP,
   title character varying null,
   key_word character varying null,
+  transaction_id uuid null,
   constraint schedule_pkey primary key (id),
+  constraint schedule_transaction_id_fkey foreign KEY (transaction_id) references transactions (id),
+  constraint schedule_user_id_fkey foreign KEY (user_id) references users (id) on delete CASCADE,
   constraint schedule_district_id_fkey foreign KEY (district_id) references districts (id) on delete set null,
   constraint schedule_sub_district_id_fkey foreign KEY (sub_district_id) references sub_districts (id) on delete set null,
-  constraint schedule_user_id_fkey foreign KEY (user_id) references users (id) on delete CASCADE,
-  constraint check_time_range check (
-    (
-      (time_start is null)
-      or (time_end is null)
-      or (time_start < time_end)
-    )
-  ),
   constraint schedule_status_check check (
     (
       (status)::text = any (
@@ -35,6 +30,13 @@ create table public.schedule (
           ]
         )::text[]
       )
+    )
+  ),
+  constraint check_time_range check (
+    (
+      (time_start is null)
+      or (time_end is null)
+      or (time_start < time_end)
     )
   )
 ) TABLESPACE pg_default;

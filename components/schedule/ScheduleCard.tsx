@@ -16,6 +16,16 @@ const isDatePassed = (dateString: string): boolean => {
   return scheduleDate < today;
 };
 
+// Helper function to format date to Thai format
+const formatThaiDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("th-TH", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+
 // Helper function to get status display
 const getStatusDisplay = (status: string, dateString: string) => {
   if (status === "completed") {
@@ -55,12 +65,21 @@ export function ScheduleCard({
     return (
       <Card className="p-3 border border-slate-200 hover:shadow-md transition-shadow">
         <div className="space-y-2">
-          {/* User Name */}
-          {schedule.user_name && (
-            <p className="text-xs text-slate-500 font-medium flex items-center gap-1">
-              <i className="fa-solid fa-user-circle"></i>
-              {schedule.user_name}
-            </p>
+          {/* User Name and Created Date */}
+          {(schedule.first_name || schedule.last_name) && (
+            <div className="text-xs justify-between text-slate-500 font-medium flex items-center gap-2 pb-2 border-b border-slate-200">
+              <div>
+                <i className="fa-solid fa-user-circle text-slate-600 mr-1"></i>
+                <span>
+                  {schedule.first_name} {schedule.last_name}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400">
+                  วันที่สร้าง {formatThaiDate(schedule.created_at)}
+                </span>
+              </div>
+            </div>
           )}
 
           {/* Title */}
@@ -144,12 +163,21 @@ export function ScheduleCard({
   return (
     <Card className="p-4 border border-slate-200 hover:shadow-md transition-shadow">
       <div className="space-y-3">
-        {/* User Name */}
-        {schedule.user_name && (
-          <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5 pb-2 border-b border-slate-200">
-            <i className="fa-solid fa-user-circle text-slate-600"></i>
-            {schedule.user_name}
-          </p>
+        {/* User Name and Created Date */}
+        {(schedule.first_name || schedule.last_name) && (
+          <div className="text-xs justify-between text-slate-500 font-medium flex items-center gap-2 pb-2 border-b border-slate-200">
+            <div>
+              <i className="fa-solid fa-user-circle text-slate-600 mr-1"></i>
+              <span>
+                {schedule.first_name} {schedule.last_name}
+              </span>
+            </div>
+            <div>
+              <span className="text-slate-400">
+                วันที่สร้าง {formatThaiDate(schedule.created_at)}
+              </span>
+            </div>
+          </div>
         )}
 
         {/* Title */}

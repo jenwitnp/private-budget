@@ -190,27 +190,6 @@ export function prepareTransactionDataForSupabase(
     }
   }
 
-  // Convert schedule_id to number if provided
-  let scheduleId: number | null = null;
-  if (formData.schedule_id) {
-    try {
-      // Handle both string and number types
-      const scheduleIdValue =
-        typeof formData.schedule_id === "string"
-          ? formData.schedule_id.trim()
-          : String(formData.schedule_id);
-
-      if (scheduleIdValue !== "") {
-        scheduleId = parseInt(scheduleIdValue, 10);
-        if (isNaN(scheduleId)) {
-          scheduleId = null;
-        }
-      }
-    } catch (e) {
-      scheduleId = null;
-    }
-  }
-
   return {
     item_name: formData.itemName || null,
     transaction_number: transactionNumber,
@@ -232,7 +211,6 @@ export function prepareTransactionDataForSupabase(
     updated_at: new Date().toISOString(),
     districts_id: districtId,
     sub_districts_id: subDistrictId,
-    schedule_id: scheduleId,
   };
 }
 

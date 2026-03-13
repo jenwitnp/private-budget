@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 import { getRoleDisplayName } from "@/lib/auth/roles";
 import { GridMenu } from "@/components/GridMenu";
+import { UserProfile } from "@/components/UserProfile";
 
 export function Header() {
   const { data: session } = useSession();
@@ -29,12 +30,7 @@ export function Header() {
     <>
       {/* Mobile Header */}
       <header className="flex md:hidden items-center justify-between p-4 bg-white border-b shadow-sm z-20">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-md bg-blue-900 flex items-center justify-center text-white">
-            <i className="fa-solid fa-wallet text-sm"></i>
-          </div>
-          <h1 className="font-bold text-slate-800">เบิกคัพ</h1>
-        </div>
+        <UserProfile displayName={displayName} session={session} />
         <button
           onClick={() => setShowMobileMenu(!showMobileMenu)}
           className="text-slate-500 hover:text-slate-700 transition-colors"
