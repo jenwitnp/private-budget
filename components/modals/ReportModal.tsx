@@ -103,6 +103,54 @@ export function ReportModal({
       title="สร้างรายงาน"
       isLoading={isGenerating}
       size="lg"
+      footer={
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isGenerating}
+            className="px-6 py-3 border-2 border-slate-300 text-slate-700 rounded-lg font-semibold hover:bg-slate-50 hover:border-slate-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            ยกเลิก
+          </button>
+          <button
+            type="button"
+            onClick={() => handleGenerateReport(true)}
+            disabled={isGenerating}
+            className="flex-1 px-6 py-3 bg-slate-600 text-white rounded-lg font-semibold hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base"
+          >
+            {isGenerating ? (
+              <>
+                <span className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                กำลังสร้าง...
+              </>
+            ) : (
+              <>
+                <i className="fas fa-eye text-lg"></i>
+                ดูตัวอย่าง
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleGenerateReport(false)}
+            disabled={isGenerating}
+            className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base"
+          >
+            {isGenerating ? (
+              <>
+                <span className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                กำลังสร้าง...
+              </>
+            ) : (
+              <>
+                <i className="fas fa-download text-lg"></i>
+                ดาวน์โหลด PDF
+              </>
+            )}
+          </button>
+        </div>
+      }
     >
       <div className="space-y-8 p-4">
         {/* Section 1: Search */}
@@ -265,54 +313,6 @@ export function ReportModal({
               </p>
             </div>
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex gap-3 pt-6 border-t-2 border-slate-200">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isGenerating}
-            className="px-6 py-3 border-2 border-slate-300 text-slate-700 rounded-lg font-semibold hover:bg-slate-50 hover:border-slate-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            ยกเลิก
-          </button>
-          <button
-            type="button"
-            onClick={() => handleGenerateReport(true)}
-            disabled={isGenerating}
-            className="flex-1 px-6 py-3 bg-slate-600 text-white rounded-lg font-semibold hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base"
-          >
-            {isGenerating ? (
-              <>
-                <span className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                กำลังสร้าง...
-              </>
-            ) : (
-              <>
-                <i className="fas fa-eye text-lg"></i>
-                ดูตัวอย่าง
-              </>
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={() => handleGenerateReport(false)}
-            disabled={isGenerating}
-            className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base"
-          >
-            {isGenerating ? (
-              <>
-                <span className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                กำลังสร้าง...
-              </>
-            ) : (
-              <>
-                <i className="fas fa-download text-lg"></i>
-                ดาวน์โหลด PDF
-              </>
-            )}
-          </button>
         </div>
       </div>
     </Modal>

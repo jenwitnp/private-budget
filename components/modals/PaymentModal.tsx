@@ -176,134 +176,129 @@ export function PaymentModal({
       title="ยืนยันการชำระเงิน"
       isLoading={isLoading}
       size="lg"
-    >
-      <div className="max-h-[85vh] overflow-y-auto">
-        {/* Transaction Details Section */}
-        {transaction && (
-          <>
-            <TransactionDetailContent
-              transaction={transaction as any}
-              isLoading={false}
-              error={null}
-            />
+      footer={
+        transaction && (
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-800 mb-4">
+                <i className="fas fa-money-bill text-emerald-600 mr-2"></i>
+                ยืนยันการชำระเงิน
+              </h3>
 
-            {/* Divider */}
-            <div className="border-t border-slate-200 my-6"></div>
-
-            {/* Payment Form Section */}
-            <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
-              <div>
-                <h3 className="text-sm font-bold text-slate-800 mb-4">
-                  <i className="fas fa-money-bill text-emerald-600 mr-2"></i>
-                  ยืนยันการชำระเงิน
-                </h3>
-
-                {error && (
-                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-                    <i className="fas fa-exclamation-circle mr-2"></i>
-                    {error}
-                  </div>
-                )}
-
-                <p className="text-sm text-slate-600 mb-4">
-                  คุณกำลังจะยืนยันการชำระเงินสำหรับรายการนี้
-                </p>
-
-                <div className="bg-emerald-50 rounded-lg p-4 mb-4 border border-emerald-200">
-                  <p className="text-sm font-medium text-emerald-900 mb-2">
-                    จำนวนเงินที่จะชำระ
-                  </p>
-                  <p className="text-2xl font-bold text-emerald-600 font-num">
-                    ฿{formatCurrency(transaction.amount || 0, 2)}
-                  </p>
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                  <i className="fas fa-exclamation-circle mr-2"></i>
+                  {error}
                 </div>
+              )}
 
-                <CurrencyInput
-                  label="ยืนยันยอดเบิก"
-                  placeholder="0.00"
-                  register={register("net_amount", {
-                    required: "กรุณายืนยันยอด",
-                  })}
-                  error={errors.net_amount}
-                  prefix="฿"
-                  decimalsLimit={2}
+              <p className="text-sm text-slate-600 mb-4">
+                คุณกำลังจะยืนยันการชำระเงินสำหรับรายการนี้
+              </p>
+
+              <div className="bg-emerald-50 rounded-lg p-4 mb-4 border border-emerald-200">
+                <p className="text-sm font-medium text-emerald-900 mb-2">
+                  จำนวนเงินที่จะชำระ
+                </p>
+                <p className="text-2xl font-bold text-emerald-600 font-num">
+                  ฿{formatCurrency(transaction.amount || 0, 2)}
+                </p>
+              </div>
+
+              <CurrencyInput
+                label="ยืนยันยอดเบิก"
+                placeholder="0.00"
+                register={register("net_amount", {
+                  required: "กรุณายืนยันยอด",
+                })}
+                error={errors.net_amount}
+                prefix="฿"
+                decimalsLimit={2}
+              />
+
+              {/* Payment Method */}
+              <div className="mt-6 pt-6 border-t border-slate-200">
+                <h4 className="text-sm font-bold text-slate-800 mb-4">
+                  <i className="fas fa-credit-card text-blue-600 mr-2"></i>
+                  เลือกวิธีการชำระเงิน
+                </h4>
+
+                <Select
+                  label="ประเภทการชำระ"
+                  register={register("payment_method")}
+                  error={errors.payment_method}
+                  options={[
+                    { value: "cash", label: "เงินสด" },
+                    { value: "transfer", label: "โอนเงิน" },
+                  ]}
+                  placeholder="-- เลือกประเภท --"
                 />
 
-                {/* Payment Method */}
-                <div className="mt-6 pt-6 border-t border-slate-200">
-                  <h4 className="text-sm font-bold text-slate-800 mb-4">
-                    <i className="fas fa-credit-card text-blue-600 mr-2"></i>
-                    เลือกวิธีการชำระเงิน
-                  </h4>
-
-                  <Select
-                    label="ประเภทการชำระ"
-                    register={register("payment_method")}
-                    error={errors.payment_method}
-                    options={[
-                      { value: "cash", label: "เงินสด" },
-                      { value: "transfer", label: "โอนเงิน" },
-                    ]}
-                    placeholder="-- เลือกประเภท --"
-                  />
-
-                  {/* Bank Account - Show only if transfer selected */}
-                  {paymentMethodValue === "transfer" && (
-                    <div className="mt-4">
-                      <Select
-                        label="บัญชีธนาคาร"
-                        register={register("bankAccountId")}
-                        error={errors.bankAccountId}
-                        options={
-                          bankAccounts?.map((account) => ({
-                            value: account.id,
-                            label: `${account.bank_name} - ${account.account_number}`,
-                          })) || []
-                        }
-                        placeholder={
-                          bankAccountsLoading
-                            ? "กำลังโหลด..."
-                            : "-- เลือกบัญชีธนาคาร --"
-                        }
-                        disabled={bankAccountsLoading}
-                      />
-                    </div>
-                  )}
-                </div>
+                {/* Bank Account - Show only if transfer selected */}
+                {paymentMethodValue === "transfer" && (
+                  <div className="mt-4">
+                    <Select
+                      label="บัญชีธนาคาร"
+                      register={register("bankAccountId")}
+                      error={errors.bankAccountId}
+                      options={
+                        bankAccounts?.map((account) => ({
+                          value: account.id,
+                          label: `${account.bank_name} - ${account.account_number}`,
+                        })) || []
+                      }
+                      placeholder={
+                        bankAccountsLoading
+                          ? "กำลังโหลด..."
+                          : "-- เลือกบัญชีธนาคาร --"
+                      }
+                      disabled={bankAccountsLoading}
+                    />
+                  </div>
+                )}
               </div>
+            </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-4 border-t border-slate-200">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  disabled={isLoading}
-                  className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="flex-1 px-4 py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isLoading ? (
-                    <>
-                      <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      กำลังประมวลผล...
-                    </>
-                  ) : (
-                    <>
-                      <i className="fas fa-check-circle"></i>
-                      ชำระเงิน
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </>
-        )}
-      </div>
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={isLoading}
+                className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="flex-1 px-4 py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    กำลังประมวลผล...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-check-circle"></i>
+                    ชำระเงิน
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        )
+      }
+    >
+      {/* Transaction Details - Only in content area */}
+      {transaction && (
+        <TransactionDetailContent
+          transaction={transaction as any}
+          isLoading={false}
+          error={null}
+        />
+      )}
     </Modal>
   );
 }

@@ -165,6 +165,13 @@ export function WithdrawModal({
       title="เบิกเงิน"
       icon="fa-arrow-right-from-bracket"
       isLoading={loading}
+      footer={
+        <FormButtons
+          isLoading={loading}
+          onClose={handleClose}
+          onSubmit={handleSubmit(handleFormSubmit)}
+        />
+      }
     >
       {/* Form Content */}
       <form onSubmit={handleSubmit(handleFormSubmit)} className="p-6 space-y-5">
@@ -329,13 +336,6 @@ export function WithdrawModal({
         <ImagePreviewGallery
           uploadedImages={uploadedImages}
           onDeleteImage={handleDeleteImage}
-        />
-
-        {/* Action Buttons */}
-        <FormButtons
-          isLoading={loading}
-          onClose={handleClose}
-          onSubmit={handleSubmit(handleFormSubmit)}
         />
       </form>
     </Modal>

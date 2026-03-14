@@ -120,68 +120,73 @@ export function RejectionModal({
       title="ปฏิเสธรายการ"
       isLoading={isLoading}
       size="lg"
-    >
-      <div className="max-h-[85vh] overflow-y-auto">
-        {/* Transaction Details Section */}
-        {transaction && (
-          <>
-            <TransactionDetailContent
-              transaction={transaction as any}
-              isLoading={false}
-              error={null}
-            />
+      footer={
+        transaction && (
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-800 mb-4">
+                <i className="fas fa-times-circle text-red-600 mr-2"></i>
+                ยืนยันการปฏิเสธ
+              </h3>
 
-            {/* Divider */}
-            <div className="border-t border-slate-200 my-6"></div>
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                  <i className="fas fa-exclamation-circle mr-2"></i>
+                  {error}
+                </div>
+              )}
 
-            {/* Rejection Form Section */}
-            <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
-              <div>
-                <h3 className="text-sm font-bold text-slate-800 mb-4">
-                  <i className="fas fa-times-circle text-red-600 mr-2"></i>
-                  ยืนยันการปฏิเสธ
-                </h3>
+              <Textarea
+                label="เหตุผลในการปฏิเสธ"
+                placeholder="ระบุเหตุผลที่ปฏิเสธรายการนี้..."
+                register={register("reason", {
+                  required: "กรุณาระบุเหตุผล",
+                })}
+                error={errors.reason}
+                rows={4}
+              />
+            </div>
 
-                {error && (
-                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-                    <i className="fas fa-exclamation-circle mr-2"></i>
-                    {error}
-                  </div>
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={isLoading}
+                className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    กำลังประมวลผล...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-times-circle"></i>
+                    ปฏิเสธ
+                  </>
                 )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-4 border-t border-slate-200">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  disabled={isLoading}
-                  className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isLoading ? (
-                    <>
-                      <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      กำลังประมวลผล...
-                    </>
-                  ) : (
-                    <>
-                      <i className="fas fa-times-circle"></i>
-                      ปฏิเสธ
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </>
-        )}
-      </div>
+              </button>
+            </div>
+          </form>
+        )
+      }
+    >
+      {/* Transaction Details - Only in content area */}
+      {transaction && (
+        <TransactionDetailContent
+          transaction={transaction as any}
+          isLoading={false}
+          error={null}
+        />
+      )}
     </Modal>
   );
 }

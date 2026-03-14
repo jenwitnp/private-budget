@@ -120,81 +120,63 @@ export function ApprovalModal({
       title="อนุมัติรายการ"
       isLoading={isLoading}
       size="lg"
-    >
-      <div className="max-h-[85vh] overflow-y-auto">
-        {/* Transaction Details Section */}
-        {transaction && (
-          <>
-            <TransactionDetailContent
-              transaction={transaction as any}
-              isLoading={false}
-              error={null}
-            />
+      footer={
+        transaction && (
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-800 mb-4">
+                <i className="fas fa-check-circle text-blue-600 mr-2"></i>
+                ยืนยันการอนุมัติ
+              </h3>
 
-            {/* Divider */}
-            <div className="border-t border-slate-200 my-6"></div>
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                  <i className="fas fa-exclamation-circle mr-2"></i>
+                  {error}
+                </div>
+              )}
+            </div>
 
-            {/* Approval Form Section */}
-            <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
-              <div>
-                <h3 className="text-sm font-bold text-slate-800 mb-4">
-                  <i className="fas fa-check-circle text-blue-600 mr-2"></i>
-                  ยืนยันการอนุมัติ
-                </h3>
-
-                {error && (
-                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-                    <i className="fas fa-exclamation-circle mr-2"></i>
-                    {error}
-                  </div>
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={isLoading}
+                className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    กำลังประมวลผล...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-check-circle"></i>
+                    อนุมัติ
+                  </>
                 )}
-
-                {/* <p className="text-sm text-slate-600 mb-4">
-                  คุณกำลังจะอนุมัติรายการถอนเงินนี้
-                  ท่านสามารถเพิ่มหมายเหตุได้หากจำเป็น
-                </p>
-
-                <Textarea
-                  label="หมายเหตุ"
-                  register={register("notes")}
-                  placeholder="เพิ่มหมายเหตุเกี่ยวกับการอนุมัติ..."
-                  error={errors.notes}
-                  rows={3}
-                /> */}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-4 border-t border-slate-200">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  disabled={isLoading}
-                  className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isLoading ? (
-                    <>
-                      <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      กำลังประมวลผล...
-                    </>
-                  ) : (
-                    <>
-                      <i className="fas fa-check-circle"></i>
-                      อนุมัติ
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </>
-        )}
-      </div>
+              </button>
+            </div>
+          </form>
+        )
+      }
+    >
+      {/* Transaction Details - Only in content area */}
+      {transaction && (
+        <TransactionDetailContent
+          transaction={transaction as any}
+          isLoading={false}
+          error={null}
+        />
+      )}
     </Modal>
   );
 }

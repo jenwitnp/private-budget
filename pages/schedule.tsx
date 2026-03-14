@@ -487,6 +487,7 @@ export default function SchedulePage() {
                       schedule={schedule}
                       onEdit={handleOpenModal}
                       onDelete={handleDelete}
+                      queryClient={queryClient}
                     />
                   ))}
                 </div>
@@ -542,6 +543,7 @@ export default function SchedulePage() {
                           onEdit={handleOpenModal}
                           onDelete={handleDelete}
                           compact
+                          queryClient={queryClient}
                         />
                       ))}
                     </div>

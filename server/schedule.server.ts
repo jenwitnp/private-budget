@@ -21,6 +21,13 @@ export interface Schedule {
   status: "active" | "completed" | "cancelled";
   created_at: string;
   updated_at: string;
+  // Withdrawal/Transaction data
+  transaction_id?: string | null;
+  transaction_number?: string | null;
+  transaction_amount?: number | null;
+  transaction_net_amount?: number | null;
+  transaction_status?: "pending" | "approved" | "rejected" | "paid" | null;
+  transaction_payment_method?: string | null;
 }
 
 export interface CreateScheduleInput {
@@ -130,9 +137,11 @@ export async function getSchedulesByMonth(
         `
         id, user_id, scheduled_date, time_start, time_end, title, address, 
         district_id, sub_district_id, note, status, created_at, updated_at,
+        transaction_id,
         users (first_name, last_name),
         districts (name),
-        sub_districts (name)
+        sub_districts (name),
+        transactions (id, transaction_number, amount, net_amount, status, payment_method)
       `,
       )
       .gte("scheduled_date", startDate)
@@ -154,6 +163,11 @@ export async function getSchedulesByMonth(
         last_name: lastName,
         district_name: schedule.districts?.name,
         sub_district_name: schedule.sub_districts?.name,
+        transaction_number: schedule.transactions?.transaction_number,
+        transaction_amount: schedule.transactions?.amount,
+        transaction_net_amount: schedule.transactions?.net_amount,
+        transaction_status: schedule.transactions?.status,
+        transaction_payment_method: schedule.transactions?.payment_method,
       };
     });
 
@@ -179,9 +193,11 @@ export async function getSchedulesByDate(date: string): Promise<{
         `
         id, user_id, scheduled_date, time_start, time_end, title, address,
         district_id, sub_district_id, note, status, created_at, updated_at,
+        transaction_id,
         users (first_name, last_name),
         districts (name),
-        sub_districts (name)
+        sub_districts (name),
+        transactions (id, transaction_number, amount, net_amount, status, payment_method)
       `,
       )
       .eq("scheduled_date", date)
@@ -202,6 +218,11 @@ export async function getSchedulesByDate(date: string): Promise<{
         last_name: lastName,
         district_name: schedule.districts?.name,
         sub_district_name: schedule.sub_districts?.name,
+        transaction_number: schedule.transactions?.transaction_number,
+        transaction_amount: schedule.transactions?.amount,
+        transaction_net_amount: schedule.transactions?.net_amount,
+        transaction_status: schedule.transactions?.status,
+        transaction_payment_method: schedule.transactions?.payment_method,
       };
     });
 

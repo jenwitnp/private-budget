@@ -41,7 +41,15 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     },
   };
 
-  const config = statusConfig[status];
+  // Default config for unknown status
+  const defaultConfig = {
+    bgColor: "bg-slate-50",
+    textColor: "text-slate-700",
+    icon: "fa-circle",
+    label: status || "ไม่ทราบสถานะ",
+  };
+
+  const config = statusConfig[status] || defaultConfig;
 
   return (
     <span

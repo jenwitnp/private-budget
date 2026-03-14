@@ -6,6 +6,7 @@ interface ModalProps {
   title: string;
   icon?: string;
   children: React.ReactNode;
+  footer?: React.ReactNode;
   size?: "sm" | "md" | "lg" | "xl";
   closeOnBackdropClick?: boolean;
   isLoading?: boolean;
@@ -24,6 +25,7 @@ export function Modal({
   title,
   icon,
   children,
+  footer,
   size = "md",
   closeOnBackdropClick = true,
   isLoading = false,
@@ -52,10 +54,10 @@ export function Modal({
       {/* Modal Container */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 pointer-events-none overflow-hidden">
         <div
-          className={`bg-white rounded-2xl shadow-xl ${sizeClasses[size]} w-full max-h-[85vh] sm:max-h-[90vh] overflow-visible flex flex-col pointer-events-auto`}
+          className={`bg-white rounded-2xl shadow-xl ${sizeClasses[size]} w-full max-h-[85vh] sm:max-h-[90vh] overflow-hidden flex flex-col pointer-events-auto`}
         >
           {/* Modal Header */}
-          <div className="flex items-center justify-between p-4 sm:p-6 pb-2 pt-2 border-b border-slate-100 sticky top-0 bg-white z-10 flex-shrink-0">
+          <div className="flex items-center justify-between p-4 sm:p-6 pb-2 pt-2 border-b border-slate-100 sticky top-0 bg-white z-10 shrink-0">
             <h2 className="text-lg sm:text-xl font-bold text-slate-800 flex items-center gap-2">
               {icon && <i className={`fa-solid ${icon} text-emerald-500`}></i>}
               {title}
@@ -73,10 +75,17 @@ export function Modal({
             </button>
           </div>
 
-          {/* Modal Content */}
-          <div className="overflow-y-auto flex-1 px-4 sm:px-6 py-4 sm:py-6 pb-20 sm:pb-6">
+          {/* Modal Content - Scrollable */}
+          <div className="overflow-y-auto flex-1 px-4 sm:px-6 py-4 sm:py-6 min-h-0">
             {children}
           </div>
+
+          {/* Modal Footer - Fixed at Bottom */}
+          {footer && (
+            <div className="shrink-0 border-t border-slate-100 p-4 sm:p-6 bg-white">
+              {footer}
+            </div>
+          )}
         </div>
       </div>
     </>
