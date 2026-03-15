@@ -18,6 +18,8 @@ export function ScheduleActions({
 }: ScheduleActionsProps) {
   const { data: session } = useSession();
   const [showImageModal, setShowImageModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Determine visibility based on transaction status
   const hasApprovedOrPaidTransaction =
@@ -30,10 +32,30 @@ export function ScheduleActions({
     return null;
   }
 
+  // Handle delete with loading state
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await onDelete(schedule.id);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Handle edit with loading state
+  const handleEdit = async () => {
+    setIsEditing(true);
+    try {
+      await onEdit(undefined, schedule);
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
   const buttonClasses = {
     base: compact
-      ? "py-1.5 px-2 font-medium text-xs transition-all duration-200 flex items-center justify-center gap-1 hover:scale-105 active:scale-95"
-      : "py-2.5 px-3 font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 hover:scale-105 active:scale-95",
+      ? "py-1.5 px-2 font-medium text-xs transition-all duration-200 flex items-center justify-center gap-1 hover:scale-105 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+      : "py-2.5 px-3 font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 hover:scale-105 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100",
     outline: {
       purple:
         "border-2 border-purple-500 text-purple-500 hover:bg-purple-50 rounded-lg",
@@ -51,9 +73,14 @@ export function ScheduleActions({
         >
           <button
             onClick={() => setShowImageModal(true)}
+            disabled={showImageModal}
             className={`w-full ${buttonClasses.base} ${buttonClasses.outline.purple} rounded-lg`}
           >
-            <i className={`fa-solid fa-camera ${compact ? "" : "text-lg"}`}></i>
+            <i
+              className={`fa-solid fa-camera ${compact ? "" : "text-lg"} ${
+                showImageModal ? "animate-spin" : ""
+              }`}
+            ></i>
             อัพรูป
           </button>
         </div>
@@ -77,24 +104,39 @@ export function ScheduleActions({
       >
         <button
           onClick={() => setShowImageModal(true)}
+          disabled={showImageModal}
           className={`flex-1 ${buttonClasses.base} ${buttonClasses.outline.purple} rounded-lg`}
         >
-          <i className={`fa-solid fa-camera ${compact ? "" : "text-lg"}`}></i>
+          <i
+            className={`fa-solid fa-camera ${compact ? "" : "text-lg"} ${
+              showImageModal ? "animate-spin" : ""
+            }`}
+          ></i>
           อัพรูป
         </button>
         <button
-          onClick={() => onEdit(undefined, schedule)}
+          onClick={handleEdit}
+          disabled={isEditing}
           className={`flex-1 ${buttonClasses.base} ${buttonClasses.outline.blue} rounded-lg`}
         >
-          <i className={`fa-solid fa-edit ${compact ? "" : "text-lg"}`}></i>
-          แก้ไข
+          <i
+            className={`fa-solid fa-edit ${compact ? "" : "text-lg"} ${
+              isEditing ? "animate-spin" : ""
+            }`}
+          ></i>
+          {isEditing ? "กำลังแก้ไข" : "แก้ไข"}
         </button>
         <button
-          onClick={() => onDelete(schedule.id)}
+          onClick={handleDelete}
+          disabled={isDeleting}
           className={`flex-1 ${buttonClasses.base} ${buttonClasses.outline.red} rounded-lg`}
         >
-          <i className={`fa-solid fa-trash ${compact ? "" : "text-lg"}`}></i>
-          ลบ
+          <i
+            className={`fa-solid fa-trash ${compact ? "" : "text-lg"} ${
+              isDeleting ? "animate-spin" : ""
+            }`}
+          ></i>
+          {isDeleting ? "กำลังลบ" : "ลบ"}
         </button>
       </div>
       {session?.user?.id && (

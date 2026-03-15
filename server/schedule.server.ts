@@ -1,6 +1,7 @@
 "use server";
 
 import { supabase } from "@/lib/supabaseClient";
+import { deleteImageFromGCS } from "@/lib/helpers/delete-image";
 
 export interface Schedule {
   id: string;
@@ -475,29 +476,102 @@ export async function updateSchedule(
 }
 
 /**
- * Delete schedule
+ * Delete schedule with cascade image deletion
+ * Flow:
+ * 1. Fetch all images associated with the schedule
+ * 2. Delete each image from GCS bucket (via API)
+ * 3. Delete all image records from database
+ * 4. Finally delete the schedule
  */
 export async function deleteSchedule(
   userId: string,
   scheduleId: string,
 ): Promise<{
   success: boolean;
+  deletedImages?: number;
   error?: string;
 }> {
   try {
-    const { error } = await (supabase as any)
+    // STEP 1: Fetch all images for this schedule
+    console.log(`🗑️  [Schedule] Fetching images for schedule: ${scheduleId}`);
+    const { data: images, error: fetchImagesError } = await (supabase as any)
+      .from("images")
+      .select("id, filename")
+      .eq("schedule_id", scheduleId);
+
+    if (fetchImagesError) {
+      console.warn(`⚠️  [Schedule] Failed to fetch images:`, fetchImagesError);
+      // Don't fail the entire operation, continue with schedule deletion
+    }
+
+    let deletedImageCount = 0;
+
+    // STEP 2 & 3: Delete each image from GCS and database
+    if (images && images.length > 0) {
+      console.log(`🗑️  [Schedule] Found ${images.length} image(s) to delete`);
+
+      for (const image of images) {
+        try {
+          // Delete from GCS via API (non-blocking)
+          await deleteImageFromGCS(image.filename);
+          deletedImageCount++;
+        } catch (deleteError) {
+          console.warn(
+            `⚠️  [Schedule] Failed to delete image ${image.id}:`,
+            deleteError,
+          );
+          // Continue with next image even if one fails
+        }
+      }
+
+      // STEP 3: Delete all image records from database
+      try {
+        console.log(
+          `🗑️  [Schedule] Deleting ${deletedImageCount} image record(s) from database`,
+        );
+        const { error: deleteImagesError } = await (supabase as any)
+          .from("images")
+          .delete()
+          .eq("schedule_id", scheduleId);
+
+        if (deleteImagesError) {
+          console.warn(
+            `⚠️  [Schedule] Failed to delete image records:`,
+            deleteImagesError,
+          );
+          // Don't fail the entire schedule deletion
+        } else {
+          console.log(
+            `✅ [Schedule] Deleted ${deletedImageCount} image record(s) from database`,
+          );
+        }
+      } catch (err) {
+        console.warn(`⚠️  [Schedule] Error deleting image records:`, err);
+      }
+    }
+
+    // STEP 4: Delete the schedule
+    console.log(`🗑️  [Schedule] Deleting schedule: ${scheduleId}`);
+    const { error: deleteScheduleError } = await (supabase as any)
       .from("schedule")
       .delete()
       .eq("id", scheduleId)
       .eq("user_id", userId);
 
-    if (error) {
-      return { success: false, error: error.message };
+    if (deleteScheduleError) {
+      return {
+        success: false,
+        error: deleteScheduleError.message,
+        deletedImages: deletedImageCount,
+      };
     }
 
-    return { success: true };
+    console.log(`✅ [Schedule] Schedule deleted successfully: ${scheduleId}`);
+
+    return { success: true, deletedImages: deletedImageCount };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    console.error(`❌ [Schedule] Error deleting schedule:`, errorMessage);
     return { success: false, error: errorMessage };
   }
 }

@@ -169,7 +169,7 @@ export function ScheduleFormModal({
           {/* District Field */}
           <div>
             <Select
-              label="อำเภอ *"
+              label="อำเภอ"
               placeholder="กรุณาเลือก"
               options={
                 districts?.map((d) => ({ value: d.id, label: d.name })) || []
@@ -198,7 +198,7 @@ export function ScheduleFormModal({
           {/* Sub-District Field */}
           <div>
             <Select
-              label="ตำบล *"
+              label="ตำบล"
               placeholder="กรุณาเลือก"
               options={
                 subDistricts?.map((s) => ({ value: s.id, label: s.name })) || []
@@ -261,10 +261,14 @@ export function ScheduleFormModal({
                 <div className="flex justify-between">
                   <span className="text-slate-600">จำนวนเงิน:</span>
                   <span className="font-medium text-emerald-600">
-                    ฿{Number(schedule.transaction_amount).toLocaleString("th-TH", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
+                    ฿
+                    {Number(schedule.transaction_amount).toLocaleString(
+                      "th-TH",
+                      {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      },
+                    )}
                   </span>
                 </div>
               )}
@@ -273,10 +277,14 @@ export function ScheduleFormModal({
                 <div className="flex justify-between">
                   <span className="text-slate-600">จำนวนสุทธิ:</span>
                   <span className="font-medium text-slate-800">
-                    ฿{Number(schedule.transaction_net_amount).toLocaleString("th-TH", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
+                    ฿
+                    {Number(schedule.transaction_net_amount).toLocaleString(
+                      "th-TH",
+                      {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      },
+                    )}
                   </span>
                 </div>
               )}

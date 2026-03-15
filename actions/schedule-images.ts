@@ -7,6 +7,7 @@
 
 import { supabase } from "@/lib/supabaseClient";
 import { uploadImagesToServer } from "@/lib/helpers/upload-images";
+import { deleteImageFromGCS } from "@/lib/helpers/delete-image";
 
 interface UploadScheduleImagesParams {
   scheduleId: string | number;
@@ -139,6 +140,8 @@ export async function fetchScheduleImagesAction(
     url: string;
     filename: string;
     created_at: string;
+    uploader_first_name: string | null;
+    uploader_last_name: string | null;
   }>;
   error?: string;
 }> {
@@ -162,7 +165,16 @@ export async function fetchScheduleImagesAction(
 
     const { data: images, error: fetchError } = await (supabase as any)
       .from("images")
-      .select("id, url, filename, created_at")
+      .select(
+        `
+          id,
+          url,
+          filename,
+          created_at,
+          uploaded_by,
+          users!inner(first_name, last_name)
+        `,
+      )
       .eq("schedule_id", scheduleIdNum)
       .order("created_at", { ascending: false });
 
@@ -170,9 +182,27 @@ export async function fetchScheduleImagesAction(
       throw new Error(`Fetch failed: ${fetchError.message}`);
     }
 
+    // Transform response to flatten user data
+    const transformedImages = (images || []).map(
+      (img: {
+        id: string;
+        url: string;
+        filename: string;
+        created_at: string;
+        users: { first_name: string | null; last_name: string | null };
+      }) => ({
+        id: img.id,
+        url: img.url,
+        filename: img.filename,
+        created_at: img.created_at,
+        uploader_first_name: img.users?.first_name || null,
+        uploader_last_name: img.users?.last_name || null,
+      }),
+    );
+
     return {
       success: true,
-      images: images || [],
+      images: transformedImages,
     };
   } catch (error) {
     const errorMessage =
@@ -186,7 +216,8 @@ export async function fetchScheduleImagesAction(
 }
 
 /**
- * Delete schedule image
+ * Delete schedule image from database and GCP bucket (via API)
+ * @param imageId - Image ID to delete from database
  */
 export async function deleteScheduleImageAction(imageId: string): Promise<{
   success: boolean;
@@ -197,14 +228,35 @@ export async function deleteScheduleImageAction(imageId: string): Promise<{
       throw new Error("Image ID is required");
     }
 
+    // Step 1: Fetch image record to get filename
+    const { data: imageRecord, error: fetchError } = await (supabase as any)
+      .from("images")
+      .select("filename")
+      .eq("id", imageId)
+      .single();
+
+    if (fetchError || !imageRecord) {
+      throw new Error(
+        `Failed to fetch image: ${fetchError?.message || "Image not found"}`,
+      );
+    }
+
+    const filename = imageRecord.filename;
+
+    // Step 2: Delete from GCS bucket via API endpoint
+    await deleteImageFromGCS(filename);
+
+    // Step 3: Delete from database
     const { error: deleteError } = await (supabase as any)
       .from("images")
       .delete()
       .eq("id", imageId);
 
     if (deleteError) {
-      throw new Error(`Delete failed: ${deleteError.message}`);
+      throw new Error(`Database delete failed: ${deleteError.message}`);
     }
+
+    console.log(`✅ [DB] Image record deleted: ${imageId}`);
 
     return {
       success: true,
@@ -213,6 +265,8 @@ export async function deleteScheduleImageAction(imageId: string): Promise<{
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error occurred";
+
+    console.error(`❌ [Delete] Error deleting image: ${errorMessage}`);
 
     return {
       success: false,

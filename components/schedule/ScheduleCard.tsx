@@ -2,10 +2,12 @@ import { Card } from "@/components/ui/Card";
 import type { Schedule } from "@/server/schedule.server";
 import type { TransactionDetailWithCategories } from "@/server/transactions.server";
 import { getTransactionDetailById } from "@/server/transactions.server";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { QueryClient } from "@tanstack/react-query";
 import { ApproveRejectModal } from "@/components/modals/ApproveRejectModal";
 import { ScheduleActions } from "@/components/schedule/ScheduleActions";
+import { ImagesGalleryModal } from "@/components/schedule/ImagesGalleryModal";
+import { fetchScheduleImagesAction } from "@/actions/schedule-images";
 
 interface ScheduleCardProps {
   schedule: Schedule;
@@ -96,6 +98,28 @@ export function ScheduleCard({
     useState<TransactionDetailWithCategories | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showImagesGallery, setShowImagesGallery] = useState(false);
+  const [imagesCount, setImagesCount] = useState(0);
+  const [loadingImagesCount, setLoadingImagesCount] = useState(false);
+
+  // Fetch images count when component mounts
+  useEffect(() => {
+    fetchImagesCount();
+  }, [schedule.id]);
+
+  const fetchImagesCount = async () => {
+    try {
+      setLoadingImagesCount(true);
+      const result = await fetchScheduleImagesAction(schedule.id);
+      if (result.success && result.images) {
+        setImagesCount(result.images.length);
+      }
+    } catch (err) {
+      console.error("Failed to fetch images count:", err);
+    } finally {
+      setLoadingImagesCount(false);
+    }
+  };
 
   const handleWithdrawalClick = async () => {
     if (schedule.transaction_status === "pending" && schedule.transaction_id) {
@@ -197,6 +221,18 @@ export function ScheduleCard({
               </p>
             )}
 
+            {/* Images Badge */}
+            {imagesCount > 0 && (
+              <button
+                onClick={() => setShowImagesGallery(true)}
+                disabled={loadingImagesCount}
+                className="w-full bg-purple-50 border border-purple-200 rounded-lg p-2 text-sm font-medium text-purple-700 hover:bg-purple-100 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <i className="fa-solid fa-image"></i>
+                รูปภาพ ({imagesCount})
+              </button>
+            )}
+
             {/* Withdrawal Information */}
             {schedule.transaction_id && (
               <button
@@ -280,6 +316,13 @@ export function ScheduleCard({
             onSuccess={handleApprovalSuccess}
           />
         )}
+
+        {/* Images Gallery Modal */}
+        <ImagesGalleryModal
+          isOpen={showImagesGallery}
+          schedule={schedule}
+          onClose={() => setShowImagesGallery(false)}
+        />
       </>
     );
   }
@@ -366,6 +409,18 @@ export function ScheduleCard({
             </div>
           )}
 
+          {/* Images Badge */}
+          {imagesCount > 0 && (
+            <button
+              onClick={() => setShowImagesGallery(true)}
+              disabled={loadingImagesCount}
+              className="w-full bg-purple-50 border border-purple-200 rounded-lg p-3 text-sm font-medium text-purple-700 hover:bg-purple-100 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <i className="fa-solid fa-image"></i>
+              ดูรูปภาพ ({imagesCount})
+            </button>
+          )}
+
           {/* Withdrawal Information */}
           {schedule.transaction_id && (
             <button
@@ -450,6 +505,13 @@ export function ScheduleCard({
           onSuccess={handleApprovalSuccess}
         />
       )}
+
+      {/* Images Gallery Modal */}
+      <ImagesGalleryModal
+        isOpen={showImagesGallery}
+        schedule={schedule}
+        onClose={() => setShowImagesGallery(false)}
+      />
     </>
   );
 }
