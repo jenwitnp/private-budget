@@ -460,7 +460,7 @@ export async function getTransactions(
         displayAmount,
         itemName: tx.item_name || "N/A",
         status: tx.status as "pending" | "approved" | "rejected" | "paid",
-        date: tx.transaction_date,
+        date: tx.created_at,
         bankAccount: tx.account_holder_name || tx.account_number || "N/A",
         userId: tx.user_id,
         createdByName: cleanName(tx.created_by_name),

@@ -32,6 +32,22 @@ const formatThaiDate = (dateString: string): string => {
   });
 };
 
+// Helper function to format date and time to Thai format
+const formatThaiDateTime = (dateString: string): string => {
+  const date = new Date(dateString);
+  const dateFormatted = date.toLocaleDateString("th-TH", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+  const timeFormatted = date.toLocaleTimeString("th-TH", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  return `${dateFormatted} ${timeFormatted}`;
+};
+
 // Helper function to get status display
 const getStatusDisplay = (status: string, dateString: string) => {
   if (status === "completed") {
@@ -54,6 +70,13 @@ const getStatusDisplay = (status: string, dateString: string) => {
     bg: "bg-blue-100",
     text_color: "text-blue-700",
   };
+};
+
+// Helper function to format time to HH:MM
+const formatTime = (timeString: string): string => {
+  if (!timeString) return "";
+  // Extract HH:MM from time string (handles both "HH:MM" and "HH:MM:SS" formats)
+  return timeString.substring(0, 5);
 };
 
 export function ScheduleCard({
@@ -98,7 +121,7 @@ export function ScheduleCard({
   if (compact) {
     return (
       <>
-        <Card className="p-3 border border-slate-200 hover:shadow-md transition-shadow">
+        <Card className="p-3 border mb-4 border-slate-200 hover:shadow-md transition-shadow">
           <div className="space-y-2">
             {/* User Name and Created Date */}
             {(schedule.first_name || schedule.last_name) && (
@@ -111,7 +134,7 @@ export function ScheduleCard({
                 </div>
                 <div>
                   <span className="text-slate-400">
-                    วันที่สร้าง {formatThaiDate(schedule.created_at)}
+                    วันที่สร้าง {formatThaiDateTime(schedule.created_at)}
                   </span>
                 </div>
               </div>
@@ -120,7 +143,6 @@ export function ScheduleCard({
             {/* Title */}
             {schedule.title && (
               <p className="text-sm font-semibold text-slate-800 line-clamp-1">
-                <i className="fa-solid fa-tag mr-2 text-emerald-600"></i>
                 {schedule.title}
               </p>
             )}
@@ -131,7 +153,8 @@ export function ScheduleCard({
                 {schedule.time_start && schedule.time_end && (
                   <p className="text-sm font-semibold text-slate-700">
                     <i className="fa-solid fa-clock mr-2 text-blue-600"></i>
-                    {schedule.time_start} - {schedule.time_end}
+                    {formatTime(schedule.time_start)} -{" "}
+                    {formatTime(schedule.time_end)}
                   </p>
                 )}
               </div>
@@ -188,8 +211,7 @@ export function ScheduleCard({
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1">
-                    <i className="fa-solid fa-money-bill text-emerald-600 text-sm"></i>
-                    <span className="text-xs text-slate-600 font-medium">
+                    <span className="text-md text-slate-600 font-medium">
                       ฿
                       {(
                         schedule.transaction_net_amount ||
@@ -216,7 +238,7 @@ export function ScheduleCard({
                   </span>
                 </div>
                 {schedule.transaction_status === "pending" && (
-                  <div className="text-xs text-yellow-700 mt-1 flex items-center gap-1">
+                  <div className="text-xs text-yellow-600 mt-1 flex items-center gap-1">
                     {isLoadingDetail ? (
                       <>
                         <span className="inline-block w-3 h-3 border-2 border-yellow-700 border-t-transparent rounded-full animate-spin" />
@@ -224,7 +246,6 @@ export function ScheduleCard({
                       </>
                     ) : (
                       <>
-                        <i className="fa-solid fa-arrow-pointer"></i>
                         <span>คลิกเพื่อดำเนินการ</span>
                       </>
                     )}
@@ -287,7 +308,7 @@ export function ScheduleCard({
               </div>
               <div>
                 <span className="text-slate-400">
-                  วันที่สร้าง {formatThaiDate(schedule.created_at)}
+                  วันที่สร้าง {formatThaiDateTime(schedule.created_at)}
                 </span>
               </div>
             </div>
@@ -307,7 +328,8 @@ export function ScheduleCard({
               {schedule.time_start && schedule.time_end && (
                 <p className="text-sm font-semibold text-slate-700">
                   <i className="fa-solid fa-clock mr-2 text-blue-600"></i>
-                  {schedule.time_start} - {schedule.time_end}
+                  {formatTime(schedule.time_start)} -{" "}
+                  {formatTime(schedule.time_end)}
                 </p>
               )}
             </div>
