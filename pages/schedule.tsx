@@ -62,6 +62,7 @@ export default function SchedulePage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
   const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
   const [formState, setFormState] = useState<FormState>({
     province: PROVINCES[0],
@@ -161,6 +162,7 @@ export default function SchedulePage() {
   const handleOpenModal = (date?: string, schedule?: Schedule) => {
     if (schedule) {
       setEditingId(schedule.id);
+      setEditingSchedule(schedule);
       const districtIdStr = schedule.district_id?.toString() || "";
       // Update formState.district so sub-districts will load via useEffect
       setFormState((prev) => ({
@@ -191,6 +193,7 @@ export default function SchedulePage() {
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingId(null);
+    setEditingSchedule(null);
     reset();
   };
 
@@ -571,6 +574,7 @@ export default function SchedulePage() {
         districts={districts}
         subDistricts={subDistricts}
         provinces={PROVINCES}
+        schedule={editingSchedule}
       />
     </Layout>
   );

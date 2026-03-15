@@ -13,6 +13,7 @@ import { Input } from "@/components/form/Input";
 import { Select } from "@/components/form/Select";
 import { CurrencyInput } from "@/components/form/CurrencyInput";
 import type { FormData } from "@/pages/schedule";
+import type { Schedule } from "@/server/schedule.server";
 import { useActiveBankAccounts } from "@/hooks/useBankAccounts";
 import { useSession } from "next-auth/react";
 
@@ -42,6 +43,7 @@ interface ScheduleFormModalProps {
   districts: { id: string; name: string }[] | null;
   subDistricts: { id: string; name: string }[] | null;
   provinces: string[];
+  schedule?: Schedule | null;
 }
 
 const THAI_STATUSES = [
@@ -66,6 +68,7 @@ export function ScheduleFormModal({
   districts,
   subDistricts,
   provinces,
+  schedule,
 }: ScheduleFormModalProps) {
   const { data: session } = useSession();
   const { data: bankAccounts, isLoading: bankAccountsLoading } =
@@ -215,84 +218,158 @@ export function ScheduleFormModal({
           </div>
         </div>
 
-        {/* Show Withdraw Form Checkbox */}
-        <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
-          <input
-            id="show_withdraw_form"
-            type="checkbox"
-            {...register("show_withdraw_form")}
-            className="w-5 h-5 accent-emerald-600 cursor-pointer rounded"
-          />
-          <label
-            htmlFor="show_withdraw_form"
-            className="text-sm font-medium text-slate-700 cursor-pointer"
-          >
-            เพิ่มรายการเบิกเงินให้กับตารางการทำงานนี้
-          </label>
-        </div>
-
-        {/* Withdraw Form Fields - Conditionally Rendered */}
-        {showWithdrawForm && (
+        {/* Withdrawal Transaction Section */}
+        {isEditing && schedule?.transaction_id ? (
+          // Existing Transaction - Read-only Display
           <div className="space-y-4 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-            {/* Payment Method */}
-            <Select
-              label="ประเภท *"
-              register={register("payment_method", {
-                validate: (value) =>
-                  showWithdrawForm && !value ? "กรุณาเลือกประเภท" : true,
-              })}
-              error={errors.payment_method}
-              options={[
-                { value: "cash", label: "เงินสด" },
-                { value: "transfer", label: "โอนเงิน" },
-              ]}
-              placeholder="-- เลือกประเภท --"
-              required={showWithdrawForm}
-              onChange={(e) => {
-                setValue("payment_method", e.target.value);
-              }}
-            />
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-sm font-semibold text-slate-700 mb-2">
+                  <i className="fa-solid fa-receipt mr-2 text-emerald-600"></i>
+                  รายการเบิกเงิน (ที่ยื่นแล้ว)
+                </p>
+              </div>
+              <span className="text-xs px-2 py-1 bg-emerald-600 text-white rounded font-medium">
+                {schedule.transaction_status || "pending"}
+              </span>
+            </div>
 
-            {/* Bank Account Selection - Required only for transfer */}
-            {paymentMethodValue === "transfer" && (
-              <Select
-                label="บัญชีธนาคาร *"
-                register={register("bankAccountId", {
-                  validate: (value) =>
-                    paymentMethodValue === "transfer" && !value
-                      ? "กรุณาเลือกบัญชีธนาคาร"
-                      : true,
-                })}
-                error={errors.bankAccountId}
-                options={
-                  bankAccounts?.map((account) => ({
-                    value: account.id,
-                    label: `${account.bank_name} - ${account.account_number}`,
-                  })) || []
-                }
-                placeholder={
-                  bankAccountsLoading
-                    ? "กำลังโหลด..."
-                    : "-- เลือกบัญชีธนาคาร --"
-                }
-                disabled={bankAccountsLoading}
-                required
-              />
-            )}
+            <div className="space-y-2 text-sm">
+              {schedule.transaction_number && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">เลขที่อ้างอิง:</span>
+                  <span className="font-medium text-slate-800">
+                    {schedule.transaction_number}
+                  </span>
+                </div>
+              )}
 
-            {/* Amount */}
-            <CurrencyInput
-              label="จำนวนเงิน *"
-              register={register("amount", {
-                validate: (value) =>
-                  showWithdrawForm && !value ? "กรุณากรอกจำนวนเงิน" : true,
-              })}
-              error={errors.amount}
-              placeholder="0.00"
-              required={showWithdrawForm}
-              prefix="฿"
-            />
+              {schedule.transaction_payment_method && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">ประเภท:</span>
+                  <span className="font-medium text-slate-800">
+                    {schedule.transaction_payment_method === "cash"
+                      ? "เงินสด"
+                      : schedule.transaction_payment_method === "transfer"
+                        ? "โอนเงิน"
+                        : schedule.transaction_payment_method}
+                  </span>
+                </div>
+              )}
+
+              {schedule.transaction_amount && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">จำนวนเงิน:</span>
+                  <span className="font-medium text-emerald-600">
+                    ฿{Number(schedule.transaction_amount).toLocaleString("th-TH", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+              )}
+
+              {schedule.transaction_net_amount && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">จำนวนสุทธิ:</span>
+                  <span className="font-medium text-slate-800">
+                    ฿{Number(schedule.transaction_net_amount).toLocaleString("th-TH", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <p className="text-xs text-slate-500 mt-3 p-2 bg-white rounded border border-slate-200">
+              <i className="fa-solid fa-info-circle mr-1"></i>
+              ไม่สามารถแก้ไขรายการเบิกเงินได้ กรุณาติดต่อผู้ดูแลระบบ
+            </p>
           </div>
+        ) : (
+          // New Transaction - Create Form
+          <>
+            {/* Show Withdraw Form Checkbox */}
+            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
+              <input
+                id="show_withdraw_form"
+                type="checkbox"
+                {...register("show_withdraw_form")}
+                className="w-5 h-5 accent-emerald-600 cursor-pointer rounded"
+              />
+              <label
+                htmlFor="show_withdraw_form"
+                className="text-sm font-medium text-slate-700 cursor-pointer"
+              >
+                เพิ่มรายการเบิกเงินให้กับตารางการทำงานนี้
+              </label>
+            </div>
+
+            {/* Withdraw Form Fields - Conditionally Rendered */}
+            {showWithdrawForm && (
+              <div className="space-y-4 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                {/* Payment Method */}
+                <Select
+                  label="ประเภท *"
+                  register={register("payment_method", {
+                    validate: (value) =>
+                      showWithdrawForm && !value ? "กรุณาเลือกประเภท" : true,
+                  })}
+                  error={errors.payment_method}
+                  options={[
+                    { value: "cash", label: "เงินสด" },
+                    { value: "transfer", label: "โอนเงิน" },
+                  ]}
+                  placeholder="-- เลือกประเภท --"
+                  required={showWithdrawForm}
+                  onChange={(e) => {
+                    setValue("payment_method", e.target.value);
+                  }}
+                />
+
+                {/* Bank Account Selection - Required only for transfer */}
+                {paymentMethodValue === "transfer" && (
+                  <Select
+                    label="บัญชีธนาคาร *"
+                    register={register("bankAccountId", {
+                      validate: (value) =>
+                        paymentMethodValue === "transfer" && !value
+                          ? "กรุณาเลือกบัญชีธนาคาร"
+                          : true,
+                    })}
+                    error={errors.bankAccountId}
+                    options={
+                      bankAccounts?.map((account) => ({
+                        value: account.id,
+                        label: `${account.bank_name} - ${account.account_number}`,
+                      })) || []
+                    }
+                    placeholder={
+                      bankAccountsLoading
+                        ? "กำลังโหลด..."
+                        : "-- เลือกบัญชีธนาคาร --"
+                    }
+                    disabled={bankAccountsLoading}
+                    required
+                  />
+                )}
+
+                {/* Amount */}
+                <CurrencyInput
+                  label="จำนวนเงิน *"
+                  register={register("amount", {
+                    validate: (value) =>
+                      showWithdrawForm && !value ? "กรุณากรอกจำนวนเงิน" : true,
+                  })}
+                  error={errors.amount}
+                  placeholder="0.00"
+                  required={showWithdrawForm}
+                  prefix="฿"
+                />
+              </div>
+            )}
+          </>
         )}
 
         {/* Note Field */}

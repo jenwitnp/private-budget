@@ -5,6 +5,7 @@ import { getTransactionDetailById } from "@/server/transactions.server";
 import { useState } from "react";
 import type { QueryClient } from "@tanstack/react-query";
 import { ApproveRejectModal } from "@/components/modals/ApproveRejectModal";
+import { ScheduleActions } from "@/components/schedule/ScheduleActions";
 
 interface ScheduleCardProps {
   schedule: Schedule;
@@ -255,22 +256,12 @@ export function ScheduleCard({
             )}
 
             {/* Actions */}
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={() => onEdit(undefined, schedule)}
-                className="flex-1 py-1.5 px-2 text-blue-600 hover:bg-blue-50 rounded font-medium text-xs transition-colors flex items-center justify-center gap-1"
-              >
-                <i className="fa-solid fa-edit"></i>
-                แก้ไข
-              </button>
-              <button
-                onClick={() => onDelete(schedule.id)}
-                className="flex-1 py-1.5 px-2 text-red-600 hover:bg-red-50 rounded font-medium text-xs transition-colors flex items-center justify-center gap-1"
-              >
-                <i className="fa-solid fa-trash"></i>
-                ลบ
-              </button>
-            </div>
+            <ScheduleActions
+              schedule={schedule}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              compact
+            />
           </div>
         </Card>
 
@@ -436,22 +427,11 @@ export function ScheduleCard({
           )}
 
           {/* Actions */}
-          <div className="flex gap-2 pt-2 border-t border-slate-200">
-            <button
-              onClick={() => onEdit(undefined, schedule)}
-              className="flex-1 py-2 px-3 text-blue-600 hover:bg-blue-50 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2"
-            >
-              <i className="fa-solid fa-edit"></i>
-              แก้ไข
-            </button>
-            <button
-              onClick={() => onDelete(schedule.id)}
-              className="flex-1 py-2 px-3 text-red-600 hover:bg-red-50 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2"
-            >
-              <i className="fa-solid fa-trash"></i>
-              ลบ
-            </button>
-          </div>
+          <ScheduleActions
+            schedule={schedule}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
         </div>
       </Card>
 
