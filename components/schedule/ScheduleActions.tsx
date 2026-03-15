@@ -1,4 +1,7 @@
+import { useState } from "react";
+import { useSession } from "next-auth/react";
 import type { Schedule } from "@/server/schedule.server";
+import { ImageUploadModal } from "./ImageUploadModal";
 
 interface ScheduleActionsProps {
   schedule: Schedule;
@@ -13,6 +16,9 @@ export function ScheduleActions({
   onDelete,
   compact = false,
 }: ScheduleActionsProps) {
+  const { data: session } = useSession();
+  const [showImageModal, setShowImageModal] = useState(false);
+
   // Determine visibility based on transaction status
   const hasApprovedOrPaidTransaction =
     schedule.transaction_status === "approved" ||
@@ -39,46 +45,66 @@ export function ScheduleActions({
   // If approved or paid, show only camera button (full width)
   if (hasApprovedOrPaidTransaction) {
     return (
-      <div
-        className={`flex gap-2 ${compact ? "pt-1" : "pt-2 border-t border-slate-200"}`}
-      >
-        <button
-          onClick={() => {}}
-          className={`w-full ${buttonClasses.base} ${buttonClasses.outline.purple} rounded-lg`}
+      <>
+        <div
+          className={`flex gap-2 ${compact ? "pt-1" : "pt-2 border-t border-slate-200"}`}
         >
-          <i className={`fa-solid fa-camera ${compact ? "" : "text-lg"}`}></i>
-          อัพรูป
-        </button>
-      </div>
+          <button
+            onClick={() => setShowImageModal(true)}
+            className={`w-full ${buttonClasses.base} ${buttonClasses.outline.purple} rounded-lg`}
+          >
+            <i className={`fa-solid fa-camera ${compact ? "" : "text-lg"}`}></i>
+            อัพรูป
+          </button>
+        </div>
+        {session?.user?.id && (
+          <ImageUploadModal
+            isOpen={showImageModal}
+            onClose={() => setShowImageModal(false)}
+            schedule={schedule}
+            userId={session.user.id}
+          />
+        )}
+      </>
     );
   }
 
   // Default: show all three buttons
   return (
-    <div
-      className={`flex gap-2 ${compact ? "pt-1" : "pt-2 border-t border-slate-200"}`}
-    >
-      <button
-        onClick={() => {}}
-        className={`flex-1 ${buttonClasses.base} ${buttonClasses.outline.purple} rounded-lg`}
+    <>
+      <div
+        className={`flex gap-2 ${compact ? "pt-1" : "pt-2 border-t border-slate-200"}`}
       >
-        <i className={`fa-solid fa-camera ${compact ? "" : "text-lg"}`}></i>
-        อัพรูป
-      </button>
-      <button
-        onClick={() => onEdit(undefined, schedule)}
-        className={`flex-1 ${buttonClasses.base} ${buttonClasses.outline.blue} rounded-lg`}
-      >
-        <i className={`fa-solid fa-edit ${compact ? "" : "text-lg"}`}></i>
-        แก้ไข
-      </button>
-      <button
-        onClick={() => onDelete(schedule.id)}
-        className={`flex-1 ${buttonClasses.base} ${buttonClasses.outline.red} rounded-lg`}
-      >
-        <i className={`fa-solid fa-trash ${compact ? "" : "text-lg"}`}></i>
-        ลบ
-      </button>
-    </div>
+        <button
+          onClick={() => setShowImageModal(true)}
+          className={`flex-1 ${buttonClasses.base} ${buttonClasses.outline.purple} rounded-lg`}
+        >
+          <i className={`fa-solid fa-camera ${compact ? "" : "text-lg"}`}></i>
+          อัพรูป
+        </button>
+        <button
+          onClick={() => onEdit(undefined, schedule)}
+          className={`flex-1 ${buttonClasses.base} ${buttonClasses.outline.blue} rounded-lg`}
+        >
+          <i className={`fa-solid fa-edit ${compact ? "" : "text-lg"}`}></i>
+          แก้ไข
+        </button>
+        <button
+          onClick={() => onDelete(schedule.id)}
+          className={`flex-1 ${buttonClasses.base} ${buttonClasses.outline.red} rounded-lg`}
+        >
+          <i className={`fa-solid fa-trash ${compact ? "" : "text-lg"}`}></i>
+          ลบ
+        </button>
+      </div>
+      {session?.user?.id && (
+        <ImageUploadModal
+          isOpen={showImageModal}
+          onClose={() => setShowImageModal(false)}
+          schedule={schedule}
+          userId={session.user.id}
+        />
+      )}
+    </>
   );
 }
