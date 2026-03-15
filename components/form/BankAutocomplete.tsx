@@ -7,6 +7,7 @@ interface BankAutocompleteProps {
   value?: string;
   onChange?: (bank: ThaiBank) => void;
   error?: string;
+  disableLogo?: boolean;
 }
 
 export function BankAutocomplete({
@@ -15,6 +16,7 @@ export function BankAutocomplete({
   value = "",
   onChange,
   error,
+  disableLogo = false,
 }: BankAutocompleteProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState(value);
@@ -89,11 +91,13 @@ export function BankAutocomplete({
               onClick={() => handleSelect(bank)}
               className="w-full px-4 py-3 flex items-center gap-3 hover:bg-emerald-50 transition-colors border-b border-slate-100 last:border-b-0"
             >
-              <img
-                src={bank.logo}
-                alt={bank.name}
-                className="w-8 h-8 rounded-full object-contain bg-white border border-slate-100 p-0.5"
-              />
+              {!disableLogo && (
+                <img
+                  src={bank.logo}
+                  alt={bank.name}
+                  className="w-8 h-8 rounded-full object-contain bg-white border border-slate-100 p-0.5"
+                />
+              )}
               <div className="text-left flex-1">
                 <p className="font-medium text-slate-800 text-sm">
                   {bank.name}
@@ -121,11 +125,13 @@ export function BankAutocomplete({
       {/* Selected bank display */}
       {selectedBank && (
         <div className="mt-2 flex items-center gap-2 p-2 bg-emerald-50 rounded-lg border border-emerald-200">
-          <img
-            src={selectedBank.logo}
-            alt={selectedBank.name}
-            className="w-6 h-6 rounded-full object-contain bg-white border border-emerald-200 p-0.5"
-          />
+          {!disableLogo && (
+            <img
+              src={selectedBank.logo}
+              alt={selectedBank.name}
+              className="w-6 h-6 rounded-full object-contain bg-white border border-emerald-200 p-0.5"
+            />
+          )}
           <span className="text-sm font-medium text-emerald-900">
             {selectedBank.name}
           </span>

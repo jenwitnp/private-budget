@@ -328,6 +328,7 @@ export default function AccountsPage() {
             value={selectedBank?.code || ""}
             onChange={(bank) => setSelectedBank(bank)}
             error={!selectedBank ? "กรุณาเลือกธนาคาร" : undefined}
+            disableLogo={true}
           />
 
           <Input
