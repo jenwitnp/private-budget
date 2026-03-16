@@ -5,6 +5,7 @@ import {
   searchSchedules,
   createSchedule,
   updateSchedule,
+  getScheduleById,
   type CreateScheduleInput,
   type UpdateScheduleInput,
 } from "@/server/schedule.server";
@@ -12,6 +13,7 @@ import { supabase } from "@/lib/supabaseClient";
 import {
   generateTransactionNumber,
   createTransactionInSupabase,
+  updateTransactionInSupabase,
 } from "@/server/withdrawal.server";
 import type { FormData } from "@/pages/schedule";
 
@@ -56,6 +58,38 @@ export async function searchSchedulesAction(query: string) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     throw error;
+  }
+}
+
+/**
+ * Fetch the latest schedule data (fresh from DB with transaction details)
+ * Used when opening edit modal to ensure we have current transaction data
+ */
+export async function fetchScheduleForEditAction(
+  userId: string,
+  scheduleId: string,
+) {
+  try {
+    const result = await getScheduleById(userId, scheduleId);
+
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error || "Failed to fetch schedule",
+      };
+    }
+
+    return {
+      success: true,
+      data: result.data,
+    };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return {
+      success: false,
+      error: errorMessage,
+    };
   }
 }
 
@@ -183,6 +217,58 @@ export async function submitScheduleAction(
     }
 
     const createdScheduleId = scheduleResult.data?.id;
+
+    // ============================================
+    // STEP 4.5: UPDATE EXISTING TRANSACTION (IF EDITING PENDING TRANSACTION)
+    // ============================================
+    if (scheduleId && formData.show_withdraw_form) {
+      try {
+        // Fetch the schedule to get transaction_id
+        const fetchResult = await getScheduleById(userId, scheduleId);
+        if (fetchResult.success && fetchResult.data?.transaction_id) {
+          const transactionId = fetchResult.data.transaction_id;
+
+          // Prepare transaction update data
+          const finalAmount =
+            typeof formData.amount === "string"
+              ? parseFloat(formData.amount.replace(/[฿,]/g, ""))
+              : Number(formData.amount);
+
+          const updateData = {
+            payment_method: formData.payment_method,
+            bank_account_id:
+              !formData.bankAccountId || formData.bankAccountId.trim() === ""
+                ? null
+                : formData.bankAccountId,
+            amount: finalAmount,
+            net_amount: finalAmount,
+            notes: formData.note || null,
+            updated_at: new Date().toISOString(),
+          };
+
+          console.log("💰 UPDATING TRANSACTION:", {
+            transactionId,
+            updateData,
+          });
+
+          // Update the transaction
+          const updateResult = await updateTransactionInSupabase(
+            transactionId,
+            updateData,
+          );
+
+          if (!updateResult.success) {
+            console.warn("⚠️  Transaction update failed:", updateResult.error);
+          } else {
+            console.log("✅ Transaction updated successfully:", transactionId);
+          }
+        }
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : "Unknown error";
+        console.warn("⚠️  Error updating transaction:", errorMsg);
+        // Don't fail the operation - schedule is still updated
+      }
+    }
 
     // ============================================
     // STEP 4: CREATE WITHDRAWAL TRANSACTION (IF ENABLED & NEW SCHEDULE)

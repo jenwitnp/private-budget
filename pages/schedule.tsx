@@ -169,7 +169,9 @@ export default function SchedulePage() {
         ...prev,
         district: districtIdStr,
       }));
-      reset({
+
+      // Pre-fill form data
+      const formData: any = {
         scheduled_date: schedule.scheduled_date,
         time_start: schedule.time_start,
         time_end: schedule.time_end,
@@ -179,7 +181,22 @@ export default function SchedulePage() {
         sub_district_id: schedule.sub_district_id?.toString(),
         note: schedule.note,
         status: schedule.status,
-      });
+      };
+
+      // If editing a pending transaction, pre-fill transaction fields
+      if (
+        schedule.transaction_id &&
+        schedule.transaction_status === "pending"
+      ) {
+        formData.show_withdraw_form = true;
+        formData.payment_method = schedule.transaction_payment_method || "";
+        // Pass raw numeric value for amount (not formatted)
+        if (schedule.transaction_amount) {
+          formData.amount = Number(schedule.transaction_amount);
+        }
+      }
+
+      reset(formData);
     } else {
       setEditingId(null);
       reset({

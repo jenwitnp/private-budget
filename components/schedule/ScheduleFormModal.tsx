@@ -220,81 +220,153 @@ export function ScheduleFormModal({
 
         {/* Withdrawal Transaction Section */}
         {isEditing && schedule?.transaction_id ? (
-          // Existing Transaction - Read-only Display
-          <div className="space-y-4 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-2">
-                  <i className="fa-solid fa-receipt mr-2 text-emerald-600"></i>
-                  รายการเบิกเงิน (ที่ยื่นแล้ว)
+          schedule?.transaction_status === "pending" ? (
+            // Pending Transaction - Editable Form
+            <>
+              {/* Show info that transaction is pending and editable */}
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-2">
+                <p className="text-xs text-amber-800 flex items-center gap-1">
+                  <i className="fa-solid fa-info-circle"></i>
+                  รายการเบิกเงินอยู่ในสถานะรออนุมัติ คุณสามารถแก้ไขได้
                 </p>
               </div>
-              <span className="text-xs px-2 py-1 bg-emerald-600 text-white rounded font-medium">
-                {schedule.transaction_status || "pending"}
-              </span>
+
+              <div className="space-y-4 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                {/* Payment Method */}
+                <Select
+                  label="ประเภท *"
+                  register={register("payment_method", {
+                    validate: (value) => (!value ? "กรุณาเลือกประเภท" : true),
+                  })}
+                  error={errors.payment_method}
+                  options={[
+                    { value: "cash", label: "เงินสด" },
+                    { value: "transfer", label: "โอนเงิน" },
+                  ]}
+                  placeholder="-- เลือกประเภท --"
+                  required={true}
+                  onChange={(e) => {
+                    setValue("payment_method", e.target.value);
+                  }}
+                />
+
+                {/* Bank Account Selection - Required only for transfer */}
+                {paymentMethodValue === "transfer" && (
+                  <Select
+                    label="บัญชีธนาคาร *"
+                    register={register("bankAccountId", {
+                      validate: (value) =>
+                        paymentMethodValue === "transfer" && !value
+                          ? "กรุณาเลือกบัญชีธนาคาร"
+                          : true,
+                    })}
+                    error={errors.bankAccountId}
+                    options={
+                      bankAccounts?.map((account) => ({
+                        value: account.id,
+                        label: `${account.bank_name} - ${account.account_number}`,
+                      })) || []
+                    }
+                    placeholder={
+                      bankAccountsLoading
+                        ? "กำลังโหลด..."
+                        : "-- เลือกบัญชีธนาคาร --"
+                    }
+                    disabled={bankAccountsLoading}
+                    required
+                  />
+                )}
+
+                {/* Amount */}
+                <CurrencyInput
+                  label="จำนวนเงิน *"
+                  register={register("amount", {
+                    validate: (value) => (!value ? "กรุณากรอกจำนวนเงิน" : true),
+                  })}
+                  error={errors.amount}
+                  placeholder="0.00"
+                  required={true}
+                  prefix="฿"
+                />
+              </div>
+            </>
+          ) : (
+            // Non-pending Transaction - Read-only Display
+            <div className="space-y-4 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-2">
+                    <i className="fa-solid fa-receipt mr-2 text-emerald-600"></i>
+                    รายการเบิกเงิน (ที่ยื่นแล้ว)
+                  </p>
+                </div>
+                <span className="text-xs px-2 py-1 bg-emerald-600 text-white rounded font-medium">
+                  {schedule.transaction_status || "pending"}
+                </span>
+              </div>
+
+              <div className="space-y-2 text-sm">
+                {schedule.transaction_number && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">เลขที่อ้างอิง:</span>
+                    <span className="font-medium text-slate-800">
+                      {schedule.transaction_number}
+                    </span>
+                  </div>
+                )}
+
+                {schedule.transaction_payment_method && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">ประเภท:</span>
+                    <span className="font-medium text-slate-800">
+                      {schedule.transaction_payment_method === "cash"
+                        ? "เงินสด"
+                        : schedule.transaction_payment_method === "transfer"
+                          ? "โอนเงิน"
+                          : schedule.transaction_payment_method}
+                    </span>
+                  </div>
+                )}
+
+                {schedule.transaction_amount && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">จำนวนเงิน:</span>
+                    <span className="font-medium text-emerald-600">
+                      ฿
+                      {Number(schedule.transaction_amount).toLocaleString(
+                        "th-TH",
+                        {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        },
+                      )}
+                    </span>
+                  </div>
+                )}
+
+                {schedule.transaction_net_amount && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">จำนวนสุทธิ:</span>
+                    <span className="font-medium text-slate-800">
+                      ฿
+                      {Number(schedule.transaction_net_amount).toLocaleString(
+                        "th-TH",
+                        {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        },
+                      )}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <p className="text-xs text-slate-500 mt-3 p-2 bg-white rounded border border-slate-200">
+                <i className="fa-solid fa-info-circle mr-1"></i>
+                ไม่สามารถแก้ไขรายการเบิกเงินได้ กรุณาติดต่อผู้ดูแลระบบ
+              </p>
             </div>
-
-            <div className="space-y-2 text-sm">
-              {schedule.transaction_number && (
-                <div className="flex justify-between">
-                  <span className="text-slate-600">เลขที่อ้างอิง:</span>
-                  <span className="font-medium text-slate-800">
-                    {schedule.transaction_number}
-                  </span>
-                </div>
-              )}
-
-              {schedule.transaction_payment_method && (
-                <div className="flex justify-between">
-                  <span className="text-slate-600">ประเภท:</span>
-                  <span className="font-medium text-slate-800">
-                    {schedule.transaction_payment_method === "cash"
-                      ? "เงินสด"
-                      : schedule.transaction_payment_method === "transfer"
-                        ? "โอนเงิน"
-                        : schedule.transaction_payment_method}
-                  </span>
-                </div>
-              )}
-
-              {schedule.transaction_amount && (
-                <div className="flex justify-between">
-                  <span className="text-slate-600">จำนวนเงิน:</span>
-                  <span className="font-medium text-emerald-600">
-                    ฿
-                    {Number(schedule.transaction_amount).toLocaleString(
-                      "th-TH",
-                      {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      },
-                    )}
-                  </span>
-                </div>
-              )}
-
-              {schedule.transaction_net_amount && (
-                <div className="flex justify-between">
-                  <span className="text-slate-600">จำนวนสุทธิ:</span>
-                  <span className="font-medium text-slate-800">
-                    ฿
-                    {Number(schedule.transaction_net_amount).toLocaleString(
-                      "th-TH",
-                      {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      },
-                    )}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <p className="text-xs text-slate-500 mt-3 p-2 bg-white rounded border border-slate-200">
-              <i className="fa-solid fa-info-circle mr-1"></i>
-              ไม่สามารถแก้ไขรายการเบิกเงินได้ กรุณาติดต่อผู้ดูแลระบบ
-            </p>
-          </div>
+          )
         ) : (
           // New Transaction - Create Form
           <>

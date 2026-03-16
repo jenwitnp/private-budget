@@ -333,3 +333,35 @@ export async function createTransactionInSupabase(
     return { success: false, error: errorMessage };
   }
 }
+
+/**
+ * Update an existing transaction with new data
+ */
+export async function updateTransactionInSupabase(
+  transactionId: string,
+  updateData: Record<string, any>,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error: updateError } = await (supabase.from("transactions") as any)
+      .update(updateData)
+      .eq("id", transactionId);
+
+    if (updateError) {
+      console.error(
+        `❌ [DB] Failed to update transaction ${transactionId}:`,
+        updateError.message,
+      );
+      return { success: false, error: updateError.message };
+    }
+
+    console.log(
+      `✅ [DB] Transaction ${transactionId} updated successfully:`,
+      updateData,
+    );
+    return { success: true };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    console.error("[DB] Error in updateTransactionInSupabase:", errorMessage);
+    return { success: false, error: errorMessage };
+  }
+}

@@ -118,6 +118,89 @@ function generateScheduleKeyword(
 }
 
 /**
+ * Get a single schedule by ID
+ */
+export async function getScheduleById(
+  userId: string,
+  scheduleId: string,
+): Promise<{
+  success: boolean;
+  data?: Schedule;
+  error?: string;
+}> {
+  try {
+    // Convert scheduleId to number (schedule.id is bigint)
+    const scheduleIdNum = parseInt(scheduleId, 10);
+    if (isNaN(scheduleIdNum)) {
+      return {
+        success: false,
+        error: "Invalid schedule ID format",
+      };
+    }
+
+    const { data: schedule, error: fetchError } = await (supabase as any)
+      .from("schedule")
+      .select(
+        `
+        id,
+        user_id,
+        scheduled_date,
+        title,
+        time_start,
+        time_end,
+        address,
+        district_id,
+        sub_district_id,
+        note,
+        status,
+        transaction_id,
+        transactions (
+          id,
+          transaction_number,
+          payment_method,
+          bank_account_id,
+          amount,
+          net_amount,
+          status
+        )
+      `,
+      )
+      .eq("id", scheduleIdNum)
+      .eq("user_id", userId)
+      .single();
+
+    if (fetchError || !schedule) {
+      return {
+        success: false,
+        error: "Schedule not found or unauthorized",
+      };
+    }
+
+    // Flatten transaction data
+    const transaction = schedule.transactions?.[0];
+    const scheduleFlatten = {
+      ...schedule,
+      transaction_status: transaction?.status,
+      transaction_payment_method: transaction?.payment_method,
+      transaction_amount: transaction?.amount,
+      transaction_net_amount: transaction?.net_amount,
+      transaction_number: transaction?.transaction_number,
+    };
+
+    return {
+      success: true,
+      data: scheduleFlatten as Schedule,
+    };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
+}
+
+/**
  * Get all schedules for a specific month (shared work calendar)
  */
 export async function getSchedulesByMonth(
@@ -338,6 +421,21 @@ export async function updateSchedule(
   error?: string;
 }> {
   try {
+    // Convert scheduleId to number (schedule.id is bigint)
+    let scheduleIdNum: number;
+    try {
+      scheduleIdNum = parseInt(scheduleId, 10);
+      if (isNaN(scheduleIdNum)) {
+        throw new Error("Invalid schedule ID format");
+      }
+    } catch (e) {
+      console.error(`❌ [Update] Invalid schedule ID: ${scheduleId}`);
+      return {
+        success: false,
+        error: "Invalid schedule ID format",
+      };
+    }
+
     // First, fetch the current schedule to get existing values
     const { data: currentSchedule, error: fetchError } = await (supabase as any)
       .from("schedule")
@@ -348,16 +446,22 @@ export async function updateSchedule(
         sub_districts (name)
       `,
       )
-      .eq("id", scheduleId)
+      .eq("id", scheduleIdNum)
       .eq("user_id", userId)
       .single();
 
     if (fetchError || !currentSchedule) {
+      console.warn(
+        `⚠️  [Update] Schedule fetch failed - ID: ${scheduleIdNum}, User: ${userId}, Error:`,
+        fetchError,
+      );
       return {
         success: false,
         error: "Schedule not found or unauthorized",
       };
     }
+
+    console.log(`✅ [Update] Schedule found: ${scheduleIdNum}`);
 
     const updatePayload: any = {};
 
@@ -438,7 +542,7 @@ export async function updateSchedule(
     const { data, error } = await (supabase as any)
       .from("schedule")
       .update(updatePayload)
-      .eq("id", scheduleId)
+      .eq("id", scheduleIdNum)
       .eq("user_id", userId)
       .select(
         `
@@ -492,12 +596,29 @@ export async function deleteSchedule(
   error?: string;
 }> {
   try {
+    // Convert scheduleId to number (schedule.id is bigint)
+    let scheduleIdNum: number;
+    try {
+      scheduleIdNum = parseInt(scheduleId, 10);
+      if (isNaN(scheduleIdNum)) {
+        throw new Error("Invalid schedule ID format");
+      }
+    } catch (e) {
+      console.error(`❌ [Delete] Invalid schedule ID: ${scheduleId}`);
+      return {
+        success: false,
+        error: "Invalid schedule ID format",
+      };
+    }
+
     // STEP 1: Fetch all images for this schedule
-    console.log(`🗑️  [Schedule] Fetching images for schedule: ${scheduleId}`);
+    console.log(
+      `🗑️  [Schedule] Fetching images for schedule: ${scheduleIdNum}`,
+    );
     const { data: images, error: fetchImagesError } = await (supabase as any)
       .from("images")
       .select("id, filename")
-      .eq("schedule_id", scheduleId);
+      .eq("schedule_id", scheduleIdNum);
 
     if (fetchImagesError) {
       console.warn(`⚠️  [Schedule] Failed to fetch images:`, fetchImagesError);
@@ -532,7 +653,7 @@ export async function deleteSchedule(
         const { error: deleteImagesError } = await (supabase as any)
           .from("images")
           .delete()
-          .eq("schedule_id", scheduleId);
+          .eq("schedule_id", scheduleIdNum);
 
         if (deleteImagesError) {
           console.warn(
@@ -551,11 +672,11 @@ export async function deleteSchedule(
     }
 
     // STEP 4: Delete the schedule
-    console.log(`🗑️  [Schedule] Deleting schedule: ${scheduleId}`);
+    console.log(`🗑️  [Schedule] Deleting schedule: ${scheduleIdNum}`);
     const { error: deleteScheduleError } = await (supabase as any)
       .from("schedule")
       .delete()
-      .eq("id", scheduleId)
+      .eq("id", scheduleIdNum)
       .eq("user_id", userId);
 
     if (deleteScheduleError) {
