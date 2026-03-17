@@ -9,6 +9,7 @@ export interface UserSettings {
   first_name?: string;
   last_name?: string;
   phone_number?: string;
+  avatar_url?: string;
   role: "owner" | "admin" | "user";
   status: "active" | "inactive";
   created_at: string;
@@ -19,6 +20,7 @@ export interface UpdateSettingsInput {
   first_name?: string;
   last_name?: string;
   phone_number?: string;
+  avatar_url?: string;
 }
 
 export interface ChangePasswordInput {
@@ -40,7 +42,7 @@ export async function getUserSettings(userId: string): Promise<{
     const { data, error } = await (supabase as any)
       .from("users")
       .select(
-        "id, username, first_name, last_name, phone_number, role, status, created_at, updated_at",
+        "id, username, first_name, last_name, phone_number, avatar_url, role, status, created_at, updated_at",
       )
       .eq("id", userId)
       .single();
@@ -76,7 +78,8 @@ export async function updateSettings(
     if (
       !input.first_name?.trim() &&
       !input.last_name?.trim() &&
-      !input.phone_number?.trim()
+      !input.phone_number?.trim() &&
+      !input.avatar_url
     ) {
       return { success: false, error: "At least one field is required" };
     }
@@ -91,13 +94,15 @@ export async function updateSettings(
       updateData.last_name = input.last_name || null;
     if (input.phone_number !== undefined)
       updateData.phone_number = input.phone_number || null;
+    if (input.avatar_url !== undefined)
+      updateData.avatar_url = input.avatar_url || null;
 
     const { data, error } = await (supabase as any)
       .from("users")
       .update(updateData)
       .eq("id", userId)
       .select(
-        "id, username, first_name, last_name, phone_number, role, status, created_at, updated_at",
+        "id, username, first_name, last_name, phone_number, avatar_url, role, status, created_at, updated_at",
       )
       .single();
 

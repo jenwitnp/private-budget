@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/form/Input";
 import { Modal } from "@/components/ui/Modal";
+import { ImageCropper } from "@/components/auth/ImageCropper";
 import {
   useUserSettings,
   useUpdateSettings,
@@ -62,6 +63,12 @@ export default function SettingsPage() {
     text: string;
   } | null>(null);
 
+  // Image upload state
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [croppedImage, setCroppedImage] = useState<string | null>(null);
+  const [showImageCropper, setShowImageCropper] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
   // Queries and mutations
   const { data: settings, isLoading } = useUserSettings(userId);
   const updateMutation = useUpdateSettings(userId);
@@ -104,6 +111,128 @@ export default function SettingsPage() {
     }
   };
 
+  // Handle image selection
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files[0]) {
+      const file = files[0];
+
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        showToast("กรุณาเลือกไฟล์รูปภาพที่ถูกต้อง", "error");
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        showToast("ขนาดรูปภาพต้องน้อยกว่า 5MB", "error");
+        return;
+      }
+
+      setSelectedImageFile(file);
+      setShowImageCropper(true);
+    }
+  };
+
+  // Handle crop complete
+  const handleCropComplete = (canvas: HTMLCanvasElement) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        showToast("เกิดข้อผิดพลาดในการประมวลผลรูปภาพ", "error");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string;
+        setCroppedImage(base64);
+        setShowImageCropper(false);
+        showToast("ตัดรูปภาพสำเร็จ", "success");
+      };
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  // Delete old image from GCP
+  const deleteOldImage = async (imageUrl: string) => {
+    try {
+      const response = await fetch("/api/delete-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url: imageUrl }),
+      });
+
+      if (!response.ok) {
+        console.warn("Failed to delete old image from GCP");
+      }
+    } catch (error) {
+      console.warn("Error deleting old image:", error);
+    }
+  };
+
+  // Upload new image and update avatar
+  const handleUploadAvatar = async () => {
+    if (!croppedImage) return;
+
+    try {
+      setUploadingImage(true);
+
+      // Upload to GCP
+      const uploadResponse = await fetch("/api/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          images: [croppedImage],
+        }),
+      });
+
+      if (!uploadResponse.ok) {
+        showToast("ไม่สามารถอัปโหลดรูปภาพได้", "error");
+        setUploadingImage(false);
+        return;
+      }
+
+      const uploadData = await uploadResponse.json();
+
+      if (!uploadData.success || !uploadData.files?.[0]?.url) {
+        showToast("ไม่สามารถอัปโหลดรูปภาพได้", "error");
+        setUploadingImage(false);
+        return;
+      }
+
+      const newImageUrl = uploadData.files[0].url;
+
+      // Delete old image if it exists
+      if (settings?.avatar_url) {
+        await deleteOldImage(settings.avatar_url);
+      }
+
+      // Update user profile with new avatar URL
+      await updateMutation.mutateAsync({
+        ...settings,
+        avatar_url: newImageUrl,
+      });
+
+      // Refresh session
+      await updateSession();
+
+      // Clear cropped image state
+      setCroppedImage(null);
+
+      showToast("อัปเดตรูปโปรไฟล์สำเร็จ!", "success");
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "ไม่สามารถอัปเดตรูปภาพได้";
+      showToast(errorMessage, "error");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const onPasswordSubmit = async (data: PasswordFormData) => {
     if (data.new_password !== data.confirm_password) {
       showToast("รหัสผ่านไม่ตรงกัน!", "error");
@@ -137,12 +266,67 @@ export default function SettingsPage() {
           <div className="flex flex-col md:flex-row gap-8 items-start">
             {/* Avatar */}
             <div className="flex flex-col items-center gap-3">
-              <div className="w-24 h-24 rounded-full bg-blue-500 border-4 border-white shadow-md overflow-hidden flex items-center justify-center text-white text-4xl font-bold">
-                {userInitial}
+              <div className="relative">
+                {croppedImage ? (
+                  <img
+                    src={croppedImage}
+                    alt="Profile"
+                    className="w-24 h-24 rounded-full object-cover border-4 border-blue-200"
+                  />
+                ) : settings?.avatar_url ? (
+                  <img
+                    src={settings.avatar_url}
+                    alt="Profile"
+                    className="w-24 h-24 rounded-full object-cover border-4 border-blue-200"
+                  />
+                ) : (
+                  <div className="w-24 h-24 rounded-full bg-blue-500 border-4 border-white shadow-md text-white text-4xl font-bold flex items-center justify-center">
+                    {userInitial}
+                  </div>
+                )}
+                {/* Camera Badge */}
+                <label className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-2 cursor-pointer transition-colors">
+                  <i className="fa-solid fa-camera text-sm"></i>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    className="hidden"
+                  />
+                </label>
               </div>
               <p className="text-sm text-slate-600 font-medium">
                 @{settings?.username}
               </p>
+
+              {/* Upload button for cropped image */}
+              {croppedImage && (
+                <div className="flex gap-2 w-full">
+                  <button
+                    onClick={() => setCroppedImage(null)}
+                    className="flex-1 px-3 py-2 border border-slate-300 text-sm text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    onClick={handleUploadAvatar}
+                    disabled={uploadingImage}
+                    className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                  >
+                    {uploadingImage ? (
+                      <>
+                        <i className="fa-solid fa-spinner fa-spin"></i>
+                        กำลังอัปโหลด...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fa-solid fa-check"></i>
+                        บันทึก
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Form */}
@@ -398,6 +582,14 @@ export default function SettingsPage() {
           </form>
         </div>
       </Modal>
+
+      {/* Image Cropper Modal */}
+      <ImageCropper
+        isOpen={showImageCropper}
+        imageFile={selectedImageFile}
+        onClose={() => setShowImageCropper(false)}
+        onCropComplete={handleCropComplete}
+      />
     </Layout>
   );
 }

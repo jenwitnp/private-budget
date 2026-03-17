@@ -91,6 +91,19 @@ export const authOptions: NextAuthOptions = {
             throw new Error("Invalid password");
           }
 
+          // Check if user status is active
+          if (user.status !== "active") {
+            console.error(
+              "❌ [AUTH] User account is not active:",
+              credentials.username,
+              "Status:",
+              user.status,
+            );
+            throw new Error(
+              "Your account has been deactivated. Please contact support.",
+            );
+          }
+
           console.log("✅ [AUTH] User authenticated:", credentials.username);
 
           // Update last login

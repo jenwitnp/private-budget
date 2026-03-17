@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/router";
+import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/form/Input";
 
@@ -151,10 +152,23 @@ export default function LoginPage() {
           </form>
         </div>
 
-        {/* Footer Description */}
-        <p className="text-center text-sm text-slate-600 mt-6">
-          ระบบเบิกเงิน ปลอดภัย และตรวจสอบได้ทุกขั้นตอน
-        </p>
+        {/* Footer Links */}
+        <div className="text-center text-sm text-slate-600 mt-6 space-y-2">
+          <p className="text-slate-500">
+            ระบบเบิกเงิน ปลอดภัย และตรวจสอบได้ทุกขั้นตอน
+          </p>
+          <div className="pt-3 border-t border-slate-200">
+            <p className="text-slate-600">
+              ยังไม่มีบัญชี?{" "}
+              <Link
+                href="/auth/register"
+                className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+              >
+                สมัครสมาชิก
+              </Link>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

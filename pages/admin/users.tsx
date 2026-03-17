@@ -214,12 +214,25 @@ export default function UsersPage() {
             {users.map((user) => (
               <Card key={user.id} className="p-4 border border-slate-200">
                 <div className="space-y-3">
-                  {/* Username and Status */}
-                  <div className="flex justify-between items-start gap-2">
+                  {/* Avatar and Username */}
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0">
+                      {user.avatar_url ? (
+                        <img
+                          src={user.avatar_url}
+                          alt={user.username}
+                          className="w-12 h-12 rounded-full object-cover border-2 border-slate-200"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">
+                          {user.username[0].toUpperCase()}
+                        </div>
+                      )}
+                    </div>
                     <div className="flex-1">
-                      <p className="text-xs text-slate-500 mb-1">ชื่อผู้ใช้</p>
-                      <p className="font-bold text-slate-900">
-                        {user.username}
+                      <p className="font-bold text-slate-900">{user.username}</p>
+                      <p className="text-xs text-slate-500">
+                        {user.first_name} {user.last_name}
                       </p>
                     </div>
                     <span
@@ -233,22 +246,10 @@ export default function UsersPage() {
                     </span>
                   </div>
 
-                  {/* Name */}
-                  {(user.first_name || user.last_name) && (
-                    <div>
-                      <p className="text-xs text-slate-500 mb-1">ชื่อจริง</p>
-                      <p className="text-slate-700">
-                        {user.first_name} {user.last_name}
-                      </p>
-                    </div>
-                  )}
-
                   {/* Phone */}
                   {user.phone_number && (
                     <div>
-                      <p className="text-xs text-slate-500 mb-1">
-                        เบอร์โทรศัพท์
-                      </p>
+                      <p className="text-xs text-slate-500 mb-1">เบอร์โทรศัพท์</p>
                       <p className="text-slate-700">{user.phone_number}</p>
                     </div>
                   )}
@@ -303,6 +304,7 @@ export default function UsersPage() {
                 <table className="w-full">
                   <thead className="bg-slate-50 border-b border-slate-200">
                     <tr>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-slate-700"></th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-slate-700">
                         ชื่อผู้ใช้
                       </th>
@@ -329,6 +331,19 @@ export default function UsersPage() {
                         key={user.id}
                         className="hover:bg-slate-50 transition-colors"
                       >
+                        <td className="px-6 py-4 text-sm">
+                          {user.avatar_url ? (
+                            <img
+                              src={user.avatar_url}
+                              alt={user.username}
+                              className="w-10 h-10 rounded-full object-cover border-2 border-slate-200"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm">
+                              {user.username[0].toUpperCase()}
+                            </div>
+                          )}
+                        </td>
                         <td className="px-6 py-4 text-sm font-medium text-slate-900">
                           {user.username}
                         </td>

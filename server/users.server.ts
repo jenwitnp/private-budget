@@ -9,6 +9,7 @@ export interface User {
   first_name?: string;
   last_name?: string;
   phone_number?: string;
+  avatar_url?: string;
   role: "owner" | "admin" | "user";
   status: "active" | "inactive";
   balance: number;
