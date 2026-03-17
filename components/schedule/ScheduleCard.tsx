@@ -7,7 +7,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { ApproveRejectModal } from "@/components/modals/ApproveRejectModal";
 import { ScheduleActions } from "@/components/schedule/ScheduleActions";
 import { ImagesGalleryModal } from "@/components/schedule/ImagesGalleryModal";
-import { fetchScheduleImagesAction } from "@/actions/schedule-images";
+import { useScheduleImages } from "@/hooks/useScheduleImages";
 
 interface ScheduleCardProps {
   schedule: Schedule;
@@ -99,27 +99,11 @@ export function ScheduleCard({
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [showImagesGallery, setShowImagesGallery] = useState(false);
-  const [imagesCount, setImagesCount] = useState(0);
-  const [loadingImagesCount, setLoadingImagesCount] = useState(false);
 
-  // Fetch images count when component mounts
-  useEffect(() => {
-    fetchImagesCount();
-  }, [schedule.id]);
-
-  const fetchImagesCount = async () => {
-    try {
-      setLoadingImagesCount(true);
-      const result = await fetchScheduleImagesAction(schedule.id);
-      if (result.success && result.images) {
-        setImagesCount(result.images.length);
-      }
-    } catch (err) {
-      console.error("Failed to fetch images count:", err);
-    } finally {
-      setLoadingImagesCount(false);
-    }
-  };
+  // Fetch images using React Query hook (auto-invalidates when query key changes)
+  const { data: images = [], isLoading: loadingImagesCount } =
+    useScheduleImages(schedule.id);
+  const imagesCount = images.length;
 
   const handleWithdrawalClick = async () => {
     if (schedule.transaction_status === "pending" && schedule.transaction_id) {

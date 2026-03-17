@@ -7,8 +7,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/form/Input";
-import { Select } from "@/components/form/Select";
 import { ScheduleFormModal } from "@/components/schedule/ScheduleFormModal";
 import { ScheduleCard } from "@/components/schedule/ScheduleCard";
 import { requireAuth } from "@/lib/auth/withAuth";
@@ -25,11 +23,7 @@ import {
   getSubDistrictsByDistrict,
 } from "@/server/districts.server";
 import { submitScheduleAction } from "@/actions/schedules";
-import type {
-  CreateScheduleInput,
-  UpdateScheduleInput,
-  Schedule,
-} from "@/server/schedule.server";
+import type { Schedule } from "@/server/schedule.server";
 
 export interface FormData {
   scheduled_date: string;
@@ -231,21 +225,6 @@ export default function SchedulePage() {
       const formDataWithoutImages = { ...data };
       delete formDataWithoutImages.images;
 
-      // Debug: Log form data before submission
-      console.log("📝 FORM DATA BEFORE SUBMISSION:", {
-        scheduled_date: data.scheduled_date,
-        title: data.title,
-        address: data.address,
-        district_id: data.district_id,
-        sub_district_id: data.sub_district_id,
-        status: data.status,
-        show_withdraw_form: data.show_withdraw_form,
-        payment_method: data.payment_method,
-        bankAccountId: data.bankAccountId,
-        amount: data.amount,
-        images: imagesToUpload.length,
-      });
-
       // ============================================
       // STEP 1: Submit Schedule (+ Transaction if needed)
       // ============================================
@@ -262,9 +241,9 @@ export default function SchedulePage() {
       }
 
       const scheduleId = result.scheduleId;
-      const transactionId = result.transactionId || null; // Capture transaction ID from server response
-      console.log("✅ Schedule created/updated:", scheduleId);
-      console.log("💰 Transaction ID:", transactionId);
+      // Use newly created transaction ID (if creating new), or fall back to existing transaction ID (if editing)
+      const transactionId =
+        result.transactionId || editingSchedule?.transaction_id || null;
 
       // ============================================
       // STEP 2: Upload Images if any were selected
@@ -274,12 +253,6 @@ export default function SchedulePage() {
           const { uploadScheduleImagesAction } =
             await import("@/actions/schedule-images");
 
-          console.log("\n=== IMAGE UPLOAD FLOW ===");
-          console.log("Images to upload:", imagesToUpload.length);
-          console.log("Schedule ID:", scheduleId);
-          console.log("Transaction ID:", transactionId);
-          console.log("=======================\n");
-
           const uploadResult = await uploadScheduleImagesAction({
             scheduleId: scheduleId.toString(),
             transactionId: transactionId, // Use the transaction ID from server response
@@ -287,13 +260,15 @@ export default function SchedulePage() {
             images: imagesToUpload,
           });
 
-          console.log("Upload action result:", uploadResult);
-
           if (uploadResult.success) {
-            console.log("✅ Images uploaded successfully");
             toast.showToast(uploadResult.message, "success");
+
+            // Invalidate images queries to refresh count in ScheduleCard
+            await queryClient.invalidateQueries({
+              queryKey: ["schedule-images", scheduleId.toString()],
+              refetchType: "all",
+            });
           } else {
-            console.warn("⚠️ Image upload failed:", uploadResult.error);
             // Don't fail the whole operation if image upload fails
             toast.showToast(
               uploadResult.error || "บันทึกสำเร็จ แต่อัปโหลดรูปภาพล้มเหลว",
@@ -302,15 +277,9 @@ export default function SchedulePage() {
           }
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : "Unknown error";
-          console.error("ERROR uploading images:", errorMsg, err);
           // Don't fail the whole operation if image upload fails
           toast.showToast("บันทึกสำเร็จ แต่อัปโหลดรูปภาพล้มเหลว", "info");
         }
-      } else if (imagesToUpload.length > 0) {
-        console.warn("Images selected but missing schedule ID", {
-          imagesCount: imagesToUpload.length,
-          scheduleId,
-        });
       }
 
       // Show success message
