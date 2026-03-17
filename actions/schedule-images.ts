@@ -73,42 +73,94 @@ export async function uploadScheduleImagesAction(
     }
 
     // Step 1: Upload images via API helper
+    console.log(
+      `[uploadScheduleImagesAction] STEP 1: Uploading ${images.length} images via API...`,
+    );
     const processedImages = await uploadImagesToServer(images);
+    console.log(`[uploadScheduleImagesAction] STEP 1 RESULT:`, {
+      count: processedImages.length,
+      hasUrls: processedImages.every((img) => img.url),
+      firstUrl: processedImages[0]?.url ? "✅ Present" : "❌ Missing",
+    });
 
     if (!processedImages || processedImages.length === 0) {
-      throw new Error("Image upload failed");
+      console.error(
+        "[uploadScheduleImagesAction] ❌ No processed images returned from upload",
+      );
+      throw new Error("Image upload failed - no images returned from API");
     }
 
     // Step 2: Prepare image records for database
     // Note: transaction_id can be NULL (after migration)
-    const imageRecords = processedImages.map((img) => ({
-      schedule_id: scheduleIdNum,
-      transaction_id: transactionId || null, // Store transaction_id only if exists
-      url: img.url || null,
-      cloud_url: img.url || null,
-      filename: img.filename,
-      file_size: img.size,
-      mime_type: "image/jpeg",
-      width: img.width,
-      height: img.height,
-      storage_path: img.url ? `schedule-images/${img.filename}` : null,
-      uploaded_by: userId,
-      upload_status: "completed",
-    }));
+    console.log(
+      `[uploadScheduleImagesAction] STEP 2: Preparing ${processedImages.length} image records for database...`,
+    );
+    const imageRecords = processedImages.map((img) => {
+      const record = {
+        schedule_id: scheduleIdNum,
+        transaction_id: transactionId || null, // Store transaction_id only if exists
+        url: img.url || null,
+        cloud_url: img.url || null,
+        filename: img.filename,
+        file_size: img.size,
+        mime_type: "image/jpeg",
+        width: img.width,
+        height: img.height,
+        storage_path: img.url ? `schedule-images/${img.filename}` : null,
+        uploaded_by: userId,
+        upload_status: "completed",
+      };
+      if (!record.url) {
+        console.warn(
+          `[uploadScheduleImagesAction] ⚠️  Image ${img.filename} has no URL!`,
+        );
+      }
+      return record;
+    });
+    console.log(
+      "[uploadScheduleImagesAction] STEP 2 RESULT:",
+      imageRecords.length,
+      "records prepared",
+    );
 
     // Step 3: Insert images into database
+    console.log(
+      "[uploadScheduleImagesAction] STEP 3: Inserting",
+      imageRecords.length,
+      "records into database...",
+    );
     const { data: insertedImages, error: insertError } = await (supabase as any)
       .from("images")
       .insert(imageRecords as any[])
       .select("id, url, filename, created_at");
 
     if (insertError) {
+      console.error(
+        "[uploadScheduleImagesAction] ❌ Database insert error:",
+        insertError,
+      );
       throw new Error(`Database insert failed: ${insertError.message}`);
     }
 
     if (!insertedImages || insertedImages.length === 0) {
-      throw new Error("Failed to save images to database");
+      console.error(
+        "[uploadScheduleImagesAction] ❌ Database insert returned no images",
+      );
+      throw new Error(
+        "Failed to save images to database - no records returned",
+      );
     }
+
+    console.log(
+      "[uploadScheduleImagesAction] STEP 3 RESULT: ✅",
+      insertedImages.length,
+      "images saved to database",
+    );
+    insertedImages.forEach((img: any, idx: number) => {
+      console.log(
+        `  [${idx + 1}] ID: ${img.id}, URL: ${img.url ? "✅ Stored" : "❌ NULL"}`,
+      );
+    });
 
     return {
       success: true,

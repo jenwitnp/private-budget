@@ -34,14 +34,23 @@ export async function uploadImagesToServer(images: File[]): Promise<
   }>
 > {
   if (!images || images.length === 0) {
+    console.log("[📸 uploadImagesToServer] ⚠️ No images provided");
     return [];
   }
 
   try {
+    console.log(
+      `[📸 uploadImagesToServer] START - Converting ${images.length} images to base64`,
+    );
+
     // Convert files to base64
     const base64Images = await filesToBase64(images);
+    console.log(
+      `[📸 uploadImagesToServer] ✅ Converted ${base64Images.length} images to base64`,
+    );
 
     // Call upload API
+    console.log("[📸 uploadImagesToServer] 📤 Calling /api/upload endpoint...");
     const uploadResponse = await fetch("/api/upload", {
       method: "POST",
       headers: {
@@ -52,21 +61,49 @@ export async function uploadImagesToServer(images: File[]): Promise<
       }),
     });
 
+    console.log(
+      "[📸 uploadImagesToServer] 📥 Response status:",
+      uploadResponse.status,
+      uploadResponse.statusText,
+    );
+
     if (!uploadResponse.ok) {
       const errorData = await uploadResponse.json();
-      throw new Error(errorData.error || "Upload failed");
+      console.error(
+        "[📸 uploadImagesToServer] ❌ Upload API error:",
+        errorData,
+      );
+      throw new Error(
+        errorData.error || `Upload failed with status ${uploadResponse.status}`,
+      );
     }
 
     const uploadData = await uploadResponse.json();
+    console.log("[📸 uploadImagesToServer] 📦 API Response:", uploadData);
 
     if (!uploadData.success) {
+      console.error(
+        "[📸 uploadImagesToServer] ❌ API returned success=false:",
+        uploadData.error,
+      );
       throw new Error(uploadData.error || "Image processing failed");
     }
 
-    return uploadData.files || [];
+    const processedFiles = uploadData.files || [];
+    console.log(
+      `[📸 uploadImagesToServer] ✅ SUCCESS - Received ${processedFiles.length} processed files with URLs`,
+    );
+    processedFiles.forEach((file: any, idx: number) => {
+      console.log(
+        `  [${idx + 1}] ${file.filename} - URL: ${file.url ? "✅ Present" : "❌ Missing"}`,
+      );
+    });
+
+    return processedFiles;
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Image upload failed";
+    console.error("[📸 uploadImagesToServer] ❌ FAILED:", errorMessage);
     throw new Error(errorMessage);
   }
 }

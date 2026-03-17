@@ -45,6 +45,7 @@ export interface FormData {
   payment_method?: string;
   bankAccountId?: string;
   amount?: string;
+  images?: File[];
 }
 
 export interface FormState {
@@ -225,6 +226,11 @@ export default function SchedulePage() {
         return;
       }
 
+      // Extract images before submission
+      const imagesToUpload = data.images || [];
+      const formDataWithoutImages = { ...data };
+      delete formDataWithoutImages.images;
+
       // Debug: Log form data before submission
       console.log("📝 FORM DATA BEFORE SUBMISSION:", {
         scheduled_date: data.scheduled_date,
@@ -237,14 +243,15 @@ export default function SchedulePage() {
         payment_method: data.payment_method,
         bankAccountId: data.bankAccountId,
         amount: data.amount,
+        images: imagesToUpload.length,
       });
 
       // ============================================
-      // NEW FLOW: Form Submit -> Schedule Action -> Log Request Data -> Server
+      // STEP 1: Submit Schedule (+ Transaction if needed)
       // ============================================
       const result = await submitScheduleAction(
         userId,
-        data,
+        formDataWithoutImages,
         editingId || undefined,
       );
 
@@ -252,6 +259,59 @@ export default function SchedulePage() {
         toast.showToast(result.error || "เกิดข้อผิดพลาดในการบันทึก", "error");
         setSubmitLoading(false);
         return;
+      }
+
+      const scheduleId = result.scheduleId;
+      console.log("✅ Schedule created/updated:", scheduleId);
+
+      // ============================================
+      // STEP 2: Upload Images if any were selected
+      // ============================================
+      if (imagesToUpload.length > 0 && scheduleId) {
+        try {
+          const { uploadScheduleImagesAction } =
+            await import("@/actions/schedule-images");
+
+          console.log("\n=== IMAGE UPLOAD FLOW ===");
+          console.log("Images to upload:", imagesToUpload.length);
+          console.log("Schedule ID:", scheduleId);
+          console.log(
+            "Transaction ID:",
+            editingSchedule?.transaction_id || "null",
+          );
+          console.log("=======================\n");
+
+          const uploadResult = await uploadScheduleImagesAction({
+            scheduleId: scheduleId.toString(),
+            transactionId: editingSchedule?.transaction_id || null,
+            userId,
+            images: imagesToUpload,
+          });
+
+          console.log("Upload action result:", uploadResult);
+
+          if (uploadResult.success) {
+            console.log("✅ Images uploaded successfully");
+            toast.showToast(uploadResult.message, "success");
+          } else {
+            console.warn("⚠️ Image upload failed:", uploadResult.error);
+            // Don't fail the whole operation if image upload fails
+            toast.showToast(
+              uploadResult.error || "บันทึกสำเร็จ แต่อัปโหลดรูปภาพล้มเหลว",
+              "info",
+            );
+          }
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : "Unknown error";
+          console.error("ERROR uploading images:", errorMsg, err);
+          // Don't fail the whole operation if image upload fails
+          toast.showToast("บันทึกสำเร็จ แต่อัปโหลดรูปภาพล้มเหลว", "info");
+        }
+      } else if (imagesToUpload.length > 0) {
+        console.warn("Images selected but missing schedule ID", {
+          imagesCount: imagesToUpload.length,
+          scheduleId,
+        });
       }
 
       // Show success message

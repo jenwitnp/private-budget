@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   UseFormRegister,
   FieldValues,
@@ -8,14 +9,32 @@ import {
   UseFormWatch,
   UseFormSetValue,
 } from "react-hook-form";
+import { useDropzone } from "react-dropzone";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/form/Input";
 import { Select } from "@/components/form/Select";
 import { CurrencyInput } from "@/components/form/CurrencyInput";
+import { useAppToast } from "@/hooks/useAppToast";
+import {
+  fetchScheduleImagesAction,
+  deleteScheduleImageAction,
+} from "@/actions/schedule-images";
 import type { FormData } from "@/pages/schedule";
 import type { Schedule } from "@/server/schedule.server";
 import { useActiveBankAccounts } from "@/hooks/useBankAccounts";
 import { useSession } from "next-auth/react";
+
+interface UploadedImage {
+  preview: string;
+  file: File;
+}
+
+interface StoredImage {
+  id: string;
+  url: string;
+  filename: string;
+  created_at: string;
+}
 
 interface ScheduleFormModalProps {
   isOpen: boolean;
@@ -73,9 +92,104 @@ export function ScheduleFormModal({
   const { data: session } = useSession();
   const { data: bankAccounts, isLoading: bankAccountsLoading } =
     useActiveBankAccounts(session?.user?.id || null);
+  const { showToast } = useAppToast();
+
+  // Image upload state
+  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  const [storedImages, setStoredImages] = useState<StoredImage[]>([]);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [deletingImageId, setDeletingImageId] = useState<string | null>(null);
 
   const showWithdrawForm = watch("show_withdraw_form");
   const paymentMethodValue = watch("payment_method");
+
+  // Fetch existing images when modal opens
+  useEffect(() => {
+    if (isOpen && schedule?.id) {
+      fetchExistingImages();
+    } else {
+      setStoredImages([]);
+      setUploadedImages([]);
+    }
+  }, [isOpen, schedule?.id]);
+
+  const fetchExistingImages = async () => {
+    try {
+      const result = await fetchScheduleImagesAction(schedule!.id);
+      if (result.success && result.images) {
+        setStoredImages(result.images);
+      }
+    } catch (err) {
+      console.error("Failed to fetch images:", err);
+    }
+  };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop: (acceptedFiles) => {
+      const imageFiles = acceptedFiles.filter((file) =>
+        file.type.startsWith("image/"),
+      );
+
+      const totalImages =
+        uploadedImages.length + storedImages.length + imageFiles.length;
+      if (totalImages > 5) {
+        setImageError(
+          `สามารถอัปโหลดได้สูงสุด 5 รูปภาพ (ปัจจุบัน: ${uploadedImages.length + storedImages.length})`,
+        );
+        return;
+      }
+
+      const newImages = imageFiles.map((file) => ({
+        preview: URL.createObjectURL(file),
+        file,
+      }));
+      setUploadedImages((prev) => [...prev, ...newImages]);
+      setImageError(null);
+    },
+    accept: {
+      "image/*": [".jpeg", ".jpg", ".png", ".gif", ".webp"],
+    },
+  });
+
+  const handleDeleteUploadedImage = (index: number) => {
+    setUploadedImages((prev) => {
+      const updated = [...prev];
+      URL.revokeObjectURL(updated[index].preview);
+      updated.splice(index, 1);
+      return updated;
+    });
+  };
+
+  const handleDeleteStoredImage = async (imageId: string) => {
+    try {
+      setDeletingImageId(imageId);
+      const result = await deleteScheduleImageAction(imageId);
+
+      if (result.success) {
+        setStoredImages((prev) => prev.filter((img) => img.id !== imageId));
+        showToast("ลบรูปภาพสำเร็จ", "success");
+      } else {
+        showToast(result.message, "error");
+      }
+    } catch (err) {
+      showToast("เกิดข้อผิดพลาดในการลบรูปภาพ", "error");
+    } finally {
+      setDeletingImageId(null);
+    }
+  };
+
+  const handleFormSubmit = async (data: FormData) => {
+    // Include uploaded images in the form data
+    data.images = uploadedImages.map((img) => img.file);
+
+    // Submit the form (schedule + images + transaction all together)
+    onSubmit(data);
+
+    // Clean up preview URLs after submission
+    uploadedImages.forEach((img) => URL.revokeObjectURL(img.preview));
+    setUploadedImages([]);
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -86,7 +200,7 @@ export function ScheduleFormModal({
       closeOnBackdropClick={false}
     >
       <form
-        onSubmit={handleSubmit(onSubmit)}
+        onSubmit={handleSubmit(handleFormSubmit)}
         noValidate
         className="p-6 space-y-4"
       >
@@ -486,6 +600,129 @@ export function ScheduleFormModal({
           })}
           error={errors.status}
         />
+
+        {/* Image Upload Section */}
+        <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          {/* Image Error */}
+          {imageError && (
+            <div className="p-2 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700 text-xs flex items-center gap-2">
+                <i className="fa-solid fa-exclamation-circle"></i>
+                {imageError}
+              </p>
+            </div>
+          )}
+
+          <h3 className="font-semibold text-slate-700 flex items-center gap-2 text-sm">
+            <i className="fa-solid fa-images text-blue-600"></i>
+            อัพโหลดรูปภาพ (ไม่บังคับ)
+          </h3>
+
+          {/* Existing Images - Only show for edited schedules */}
+          {isEditing && storedImages.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-slate-600 mb-2">
+                รูปภาพที่อัพโหลดแล้ว ({storedImages.length})
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {storedImages.map((image) => (
+                  <div
+                    key={image.id}
+                    className="relative group rounded-lg overflow-hidden bg-slate-100"
+                  >
+                    <img
+                      src={image.url}
+                      alt={image.filename}
+                      className="w-full h-20 object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteStoredImage(image.id)}
+                      disabled={deletingImageId === image.id}
+                      className="absolute top-0.5 right-0.5 p-1 bg-red-500 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50 text-xs"
+                      title="ลบรูปภาพ"
+                    >
+                      <i className="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Divider */}
+          {isEditing &&
+            storedImages.length > 0 &&
+            uploadedImages.length > 0 && (
+              <div className="border-t border-blue-200"></div>
+            )}
+
+          {/* Upload Area */}
+          <div
+            {...getRootProps()}
+            className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer ${
+              isDragActive
+                ? "border-blue-500 bg-blue-100"
+                : "border-blue-300 hover:border-blue-400 bg-white"
+            }`}
+          >
+            <input {...getInputProps()} />
+            <div className="text-2xl mb-1 text-blue-400">
+              <i className="fa-solid fa-cloud-arrow-up"></i>
+            </div>
+            {isDragActive ? (
+              <p className="text-blue-600 font-medium text-xs">
+                วางรูปภาพที่นี่
+              </p>
+            ) : (
+              <>
+                <p className="text-slate-700 font-medium text-xs mb-0.5">
+                  ลากรูปภาพที่นี่ หรือคลิกเพื่อเลือก
+                </p>
+                <p className="text-xs text-slate-500">
+                  JPG, PNG, GIF, WebP (ไม่เกิน 5MB)
+                </p>
+              </>
+            )}
+          </div>
+
+          {/* Image Preview Gallery */}
+          {uploadedImages.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-slate-600 mb-2">
+                รูปภาพใหม่ที่เลือก ({uploadedImages.length})
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {uploadedImages.map((image, index) => (
+                  <div
+                    key={index}
+                    className="relative group rounded-lg overflow-hidden bg-slate-100"
+                  >
+                    <img
+                      src={image.preview}
+                      alt={`preview-${index}`}
+                      className="w-full h-20 object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteUploadedImage(index)}
+                      className="absolute top-0.5 right-0.5 p-1 bg-red-500 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                      title="ลบรูปภาพ"
+                    >
+                      <i className="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Limits Info */}
+          <p className="text-xs text-blue-700 p-2 bg-white rounded border border-blue-200">
+            <i className="fa-solid fa-info-circle mr-1"></i>
+            สูงสุด 5 รูปภาพต่อตารางงาน
+          </p>
+        </div>
 
         {/* Validation Summary - Show if there are errors */}
         {Object.keys(errors).length > 0 && (
