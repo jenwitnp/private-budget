@@ -217,6 +217,7 @@ export async function submitScheduleAction(
     }
 
     const createdScheduleId = scheduleResult.data?.id;
+    let createdTransactionId: string | null = null;
 
     // ============================================
     // STEP 4.5: UPDATE EXISTING TRANSACTION (IF EDITING PENDING TRANSACTION)
@@ -350,26 +351,26 @@ export async function submitScheduleAction(
             transactionResult.error,
           );
         } else {
-          const transactionId = transactionResult.id;
+          createdTransactionId = transactionResult.id;
           console.log(
             "✅ Transaction created successfully with ID:",
-            transactionId,
+            createdTransactionId,
           );
 
           // ============================================
           // STEP 5: LINK TRANSACTION TO SCHEDULE
           // ============================================
-          if (transactionId) {
+          if (createdTransactionId) {
             const updateResult = await updateSchedule(
               userId,
               createdScheduleId.toString(),
-              { transaction_id: transactionId }, // Link transaction to schedule
+              { transaction_id: createdTransactionId }, // Link transaction to schedule
             );
 
             if (updateResult.success) {
               console.log(
                 "✅ Schedule updated with transaction_id:",
-                transactionId,
+                createdTransactionId,
               );
             } else {
               console.warn(
@@ -392,6 +393,7 @@ export async function submitScheduleAction(
     return {
       success: true,
       scheduleId: createdScheduleId,
+      transactionId: createdTransactionId, // Include transaction ID if created
       message: scheduleId
         ? "Schedule updated successfully"
         : "Schedule created successfully",

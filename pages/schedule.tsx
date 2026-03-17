@@ -262,7 +262,9 @@ export default function SchedulePage() {
       }
 
       const scheduleId = result.scheduleId;
+      const transactionId = result.transactionId || null; // Capture transaction ID from server response
       console.log("✅ Schedule created/updated:", scheduleId);
+      console.log("💰 Transaction ID:", transactionId);
 
       // ============================================
       // STEP 2: Upload Images if any were selected
@@ -275,15 +277,12 @@ export default function SchedulePage() {
           console.log("\n=== IMAGE UPLOAD FLOW ===");
           console.log("Images to upload:", imagesToUpload.length);
           console.log("Schedule ID:", scheduleId);
-          console.log(
-            "Transaction ID:",
-            editingSchedule?.transaction_id || "null",
-          );
+          console.log("Transaction ID:", transactionId);
           console.log("=======================\n");
 
           const uploadResult = await uploadScheduleImagesAction({
             scheduleId: scheduleId.toString(),
-            transactionId: editingSchedule?.transaction_id || null,
+            transactionId: transactionId, // Use the transaction ID from server response
             userId,
             images: imagesToUpload,
           });
