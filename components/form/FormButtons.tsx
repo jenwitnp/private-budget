@@ -1,10 +1,10 @@
 interface FormButtonsProps {
   isLoading: boolean;
   onClose: () => void;
-  onSubmit?: () => void;
+  formId?: string;
 }
 
-export function FormButtons({ isLoading, onClose }: FormButtonsProps) {
+export function FormButtons({ isLoading, onClose, formId }: FormButtonsProps) {
   return (
     <div className="flex gap-3 pt-6 border-t border-slate-200">
       <button
@@ -17,6 +17,7 @@ export function FormButtons({ isLoading, onClose }: FormButtonsProps) {
       </button>
       <button
         type="submit"
+        form={formId}
         disabled={isLoading}
         className="flex-1 px-4 py-2.5 bg-blue-900 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >

@@ -158,6 +158,8 @@ export function WithdrawModal({
 
   if (!isOpen) return null;
 
+  const FORM_ID = "withdraw-form";
+
   return (
     <Modal
       isOpen={isOpen}
@@ -169,12 +171,12 @@ export function WithdrawModal({
         <FormButtons
           isLoading={loading}
           onClose={handleClose}
-          onSubmit={handleSubmit(handleFormSubmit)}
+          formId={FORM_ID}
         />
       }
     >
       {/* Form Content */}
-      <form onSubmit={handleSubmit(handleFormSubmit)} className="p-6 space-y-5">
+      <form id={FORM_ID} onSubmit={handleSubmit(handleFormSubmit)} className="p-6 space-y-5">
         {/* Error Message */}
         <FormErrorMessage error={error} />
 
