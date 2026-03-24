@@ -36,6 +36,7 @@ export interface FormData {
   note?: string;
   status: "active" | "completed" | "cancelled";
   show_withdraw_form?: boolean;
+  category?: string;
   payment_method?: string;
   bankAccountId?: string;
   amount?: string;
@@ -86,6 +87,7 @@ export default function SchedulePage() {
       district_id: "",
       sub_district_id: "",
       show_withdraw_form: false,
+      category: "",
       payment_method: "",
       bankAccountId: "",
       amount: "",

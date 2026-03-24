@@ -146,6 +146,13 @@ export async function submitScheduleAction(
     // STEP 1.5: VALIDATE WITHDRAWAL FIELDS (IF ENABLED)
     // ============================================
     if (formData.show_withdraw_form) {
+      if (!formData.category || formData.category.trim() === "") {
+        return {
+          success: false,
+          error: "กรุณาเลือกหมวดหมู่",
+        };
+      }
+
       if (!formData.payment_method || formData.payment_method.trim() === "") {
         return {
           success: false,
@@ -241,6 +248,7 @@ export async function submitScheduleAction(
               !formData.bankAccountId || formData.bankAccountId.trim() === ""
                 ? null
                 : formData.bankAccountId,
+            category_id: formData.category || undefined,
             amount: finalAmount,
             net_amount: finalAmount,
             notes: formData.note || null,
@@ -324,7 +332,8 @@ export async function submitScheduleAction(
           net_amount: finalAmount,
           currency: "THB",
           description: `คำขอเบิกจากตารางงาน : ${formData.title}`,
-          category_id: "b07b2cc8-6f32-443a-b490-03686d3908f4",
+          category_id:
+            formData.category || "b07b2cc8-6f32-443a-b490-03686d3908f4",
           payment_method: formData.payment_method,
           notes: formData.note || null,
           status: "pending",

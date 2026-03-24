@@ -15,6 +15,7 @@ import { Input } from "@/components/form/Input";
 import { Select } from "@/components/form/Select";
 import { CurrencyInput } from "@/components/form/CurrencyInput";
 import { useAppToast } from "@/hooks/useAppToast";
+import { useActiveCategories } from "@/hooks/useCategories";
 import {
   fetchScheduleImagesAction,
   deleteScheduleImageAction,
@@ -92,6 +93,8 @@ export function ScheduleFormModal({
   const { data: session } = useSession();
   const { data: bankAccounts, isLoading: bankAccountsLoading } =
     useActiveBankAccounts(session?.user?.id || null);
+  const { data: categories, isLoading: categoriesLoading } =
+    useActiveCategories();
   const { showToast } = useAppToast();
 
   // Image upload state
@@ -503,6 +506,27 @@ export function ScheduleFormModal({
             {/* Withdraw Form Fields - Conditionally Rendered */}
             {showWithdrawForm && (
               <div className="space-y-4 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                {/* Category */}
+                <Select
+                  label="หมวดหมู่ *"
+                  register={register("category", {
+                    validate: (value) =>
+                      showWithdrawForm && !value ? "กรุณาเลือกหมวดหมู่" : true,
+                  })}
+                  error={errors.category}
+                  options={
+                    categories?.map((category) => ({
+                      value: category.id,
+                      label: category.name,
+                    })) || []
+                  }
+                  placeholder={
+                    categoriesLoading ? "กำลังโหลด..." : "-- เลือกหมวดหมู่ --"
+                  }
+                  disabled={categoriesLoading}
+                  required={showWithdrawForm}
+                />
+
                 {/* Payment Method */}
                 <Select
                   label="ประเภท *"
