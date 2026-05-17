@@ -48,6 +48,8 @@ export interface ClientTransaction {
   districtName?: string;
   thumbnail?: string | null; // First image URL if exists
   bank_account_id?: string; // Bank account ID for payment form
+  memberName?: string; // ผู้แทน / ผู้รับมอบ
+  memberLevel?: string; // กลุ่ม/ระดับ
 }
 
 export interface TransactionWithBankDetails extends Transaction {
@@ -148,6 +150,14 @@ export interface TransactionDetailWithCategories {
   error_message: string | null;
   ip_address: string | null;
   user_agent: string | null;
+
+  // Member information (ผู้แทน / ผู้รับมอบ)
+  member_id: string | null;
+  member_first_name: string | null;
+  member_last_name: string | null;
+  member_level: string | null;
+  member_district: string | null;
+  member_subdistrict: string | null;
 }
 
 /**
@@ -470,6 +480,10 @@ export async function getTransactions(
         categoryName: tx.category_name || "N/A",
         districtName: tx.district_name || "N/A",
         thumbnail: (tx as any).thumbnail || null,
+        memberName: cleanName(
+          [tx.member_first_name, tx.member_last_name].filter(Boolean).join(" ")
+        ),
+        memberLevel: tx.member_level || undefined,
       };
     });
 

@@ -257,6 +257,33 @@ export function TransactionDetailContent({
         </div>
       </div>
 
+      {/* Member Section */}
+      {transaction.member_id && (transaction.member_first_name || transaction.member_last_name) && (
+        <div>
+          <p className="text-xs text-slate-500 font-medium mb-3">ผู้แทน / ผู้รับมอบ</p>
+          <div className="flex items-center gap-3 bg-emerald-50 rounded-lg p-4 border border-emerald-100">
+            <i className="fa-solid fa-user-check text-emerald-600 text-lg shrink-0"></i>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-slate-800">
+                {transaction.member_first_name} {transaction.member_last_name}
+                {transaction.member_level && (
+                  <span className="ml-2 text-xs font-mono px-1.5 py-0.5 bg-emerald-200 text-emerald-800 rounded">
+                    {transaction.member_level}
+                  </span>
+                )}
+              </p>
+              {(transaction.member_subdistrict || transaction.member_district) && (
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {[transaction.member_subdistrict, transaction.member_district]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Location Information Section */}
       {(transaction.district_name || transaction.sub_district_name) && (
         <div>

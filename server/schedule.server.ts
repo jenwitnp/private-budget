@@ -22,6 +22,13 @@ export interface Schedule {
   status: "active" | "completed" | "cancelled";
   created_at: string;
   updated_at: string;
+  // Member (ผู้แทน/ผู้รับมอบ)
+  member_id?: string | null;
+  member_first_name?: string | null;
+  member_last_name?: string | null;
+  member_level?: string | null;
+  member_district?: string | null;
+  member_subdistrict?: string | null;
   // Withdrawal/Transaction data
   transaction_id?: string | null;
   transaction_number?: string | null;
@@ -29,6 +36,7 @@ export interface Schedule {
   transaction_net_amount?: number | null;
   transaction_status?: "pending" | "approved" | "rejected" | "paid" | null;
   transaction_payment_method?: string | null;
+  transaction_category_id?: string | null;
 }
 
 export interface CreateScheduleInput {
@@ -41,6 +49,7 @@ export interface CreateScheduleInput {
   sub_district_id?: string;
   note?: string;
   status?: "active" | "completed" | "cancelled";
+  member_id?: string | null;
 }
 
 export interface UpdateScheduleInput {
@@ -54,6 +63,7 @@ export interface UpdateScheduleInput {
   note?: string;
   status?: "active" | "completed" | "cancelled";
   transaction_id?: string;
+  member_id?: string | null;
 }
 
 /**
@@ -176,8 +186,8 @@ export async function getScheduleById(
       };
     }
 
-    // Flatten transaction data
-    const transaction = schedule.transactions?.[0];
+    // Flatten transaction data (Supabase returns single object for belongs-to join)
+    const transaction = schedule.transactions;
     const scheduleFlatten = {
       ...schedule,
       transaction_status: transaction?.status,
@@ -219,13 +229,14 @@ export async function getSchedulesByMonth(
       .from("schedule")
       .select(
         `
-        id, user_id, scheduled_date, time_start, time_end, title, address, 
+        id, user_id, scheduled_date, time_start, time_end, title, address,
         district_id, sub_district_id, note, status, created_at, updated_at,
-        transaction_id,
+        transaction_id, member_id,
         users (first_name, last_name),
         districts (name),
         sub_districts (name),
-        transactions (id, transaction_number, amount, net_amount, status, payment_method)
+        transactions (id, transaction_number, amount, net_amount, status, payment_method, category_id),
+        member:members!member_id (first_name, last_name, level, district, subdistrict)
       `,
       )
       .gte("scheduled_date", startDate)
@@ -252,6 +263,12 @@ export async function getSchedulesByMonth(
         transaction_net_amount: schedule.transactions?.net_amount,
         transaction_status: schedule.transactions?.status,
         transaction_payment_method: schedule.transactions?.payment_method,
+        transaction_category_id: schedule.transactions?.category_id || null,
+        member_first_name: schedule.member?.first_name || null,
+        member_last_name: schedule.member?.last_name || null,
+        member_level: schedule.member?.level || null,
+        member_district: schedule.member?.district || null,
+        member_subdistrict: schedule.member?.subdistrict || null,
       };
     });
 
@@ -277,11 +294,12 @@ export async function getSchedulesByDate(date: string): Promise<{
         `
         id, user_id, scheduled_date, time_start, time_end, title, address,
         district_id, sub_district_id, note, status, created_at, updated_at,
-        transaction_id,
+        transaction_id, member_id,
         users (first_name, last_name),
         districts (name),
         sub_districts (name),
-        transactions (id, transaction_number, amount, net_amount, status, payment_method)
+        transactions (id, transaction_number, amount, net_amount, status, payment_method, category_id),
+        member:members!member_id (first_name, last_name, level, district, subdistrict)
       `,
       )
       .eq("scheduled_date", date)
@@ -307,6 +325,12 @@ export async function getSchedulesByDate(date: string): Promise<{
         transaction_net_amount: schedule.transactions?.net_amount,
         transaction_status: schedule.transactions?.status,
         transaction_payment_method: schedule.transactions?.payment_method,
+        transaction_category_id: schedule.transactions?.category_id || null,
+        member_first_name: schedule.member?.first_name || null,
+        member_last_name: schedule.member?.last_name || null,
+        member_level: schedule.member?.level || null,
+        member_district: schedule.member?.district || null,
+        member_subdistrict: schedule.member?.subdistrict || null,
       };
     });
 
@@ -389,6 +413,7 @@ export async function createSchedule(
       note: input.note || null,
       status: input.status || "active",
       key_word: keyword,
+      member_id: input.member_id || null,
     };
 
     const { data, error } = await (supabase as any)
@@ -484,6 +509,8 @@ export async function updateSchedule(
     if (input.status !== undefined) updatePayload.status = input.status;
     if (input.transaction_id !== undefined)
       updatePayload.transaction_id = input.transaction_id || null;
+    if (input.member_id !== undefined)
+      updatePayload.member_id = input.member_id || null;
 
     // Generate new keyword based on updated values
     const titleForKeyword =

@@ -1,5 +1,3 @@
-DROP VIEW IF EXISTS public.transactions_detail_with_categories;
-
 create view public.transactions_detail_with_categories as
 select
   t.id,

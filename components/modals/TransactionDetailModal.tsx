@@ -27,7 +27,7 @@ export function TransactionDetailModal({
       size="xl"
       isLoading={!transaction}
     >
-      <div className="max-h-[80vh] overflow-y-auto">
+      <div className="max-h-[80vh] ">
         <TransactionDetailContent
           transaction={transaction as any}
           isLoading={!transaction}

@@ -9,7 +9,7 @@ import {
   type CreateScheduleInput,
   type UpdateScheduleInput,
 } from "@/server/schedule.server";
-import { supabase } from "@/lib/supabaseClient";
+
 import {
   generateTransactionNumber,
   createTransactionInSupabase,
@@ -33,8 +33,6 @@ export async function fetchScheduleStatsAction() {
       stats: result.stats,
     };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
     throw error;
   }
 }
@@ -55,8 +53,6 @@ export async function searchSchedulesAction(query: string) {
       data: result.data || [],
     };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
     throw error;
   }
 }
@@ -194,12 +190,13 @@ export async function submitScheduleAction(
       sub_district_id: formData.sub_district_id || undefined,
       note: formData.note || undefined,
       status: formData.status,
+      member_id: formData.member_id || null,
     };
 
     // ============================================
     // STEP 3: CREATE OR UPDATE SCHEDULE
     // ============================================
-    let scheduleResult;
+    let scheduleResult: Awaited<ReturnType<typeof updateSchedule>>;
     if (scheduleId) {
       // UPDATE
       scheduleResult = await updateSchedule(
@@ -225,51 +222,50 @@ export async function submitScheduleAction(
 
     const createdScheduleId = scheduleResult.data?.id;
     let createdTransactionId: string | null = null;
+    let existingTxId: string | null = null;
 
     // ============================================
     // STEP 4.5: UPDATE EXISTING TRANSACTION (IF EDITING PENDING TRANSACTION)
     // ============================================
-    if (scheduleId && formData.show_withdraw_form) {
+    if (scheduleId) {
       try {
-        // Fetch the schedule to get transaction_id
+        // Fetch fresh schedule to get transaction_id and current status
         const fetchResult = await getScheduleById(userId, scheduleId);
-        if (fetchResult.success && fetchResult.data?.transaction_id) {
-          const transactionId = fetchResult.data.transaction_id;
+        existingTxId = fetchResult.data?.transaction_id || null;
+        const existingTxStatus = fetchResult.data?.transaction_status;
 
-          // Prepare transaction update data
+        if (fetchResult.success && existingTxId && existingTxStatus === "pending") {
           const finalAmount =
             typeof formData.amount === "string"
               ? parseFloat(formData.amount.replace(/[฿,]/g, ""))
               : Number(formData.amount);
 
-          const updateData = {
-            payment_method: formData.payment_method,
+          const updateData: Record<string, any> = {
+            item_name: formData.title || null,
+            payment_method: formData.payment_method || null,
             bank_account_id:
               !formData.bankAccountId || formData.bankAccountId.trim() === ""
                 ? null
                 : formData.bankAccountId,
-            category_id: formData.category || undefined,
-            amount: finalAmount,
-            net_amount: finalAmount,
+            category_id: formData.category || null,
+            member_id: formData.member_id || null,
             notes: formData.note || null,
             updated_at: new Date().toISOString(),
           };
 
-          console.log("💰 UPDATING TRANSACTION:", {
-            transactionId,
-            updateData,
-          });
+          if (!isNaN(finalAmount) && finalAmount > 0) {
+            updateData.amount = finalAmount;
+            updateData.net_amount = finalAmount;
+          }
 
-          // Update the transaction
-          const updateResult = await updateTransactionInSupabase(
-            transactionId,
-            updateData,
-          );
+          console.log("💰 UPDATING TRANSACTION:", { transactionId: existingTxId, updateData });
+
+          const updateResult = await updateTransactionInSupabase(existingTxId, updateData);
 
           if (!updateResult.success) {
             console.warn("⚠️  Transaction update failed:", updateResult.error);
           } else {
-            console.log("✅ Transaction updated successfully:", transactionId);
+            console.log("✅ Transaction updated successfully:", existingTxId);
           }
         }
       } catch (err) {
@@ -280,9 +276,9 @@ export async function submitScheduleAction(
     }
 
     // ============================================
-    // STEP 4: CREATE WITHDRAWAL TRANSACTION (IF ENABLED & NEW SCHEDULE)
+    // STEP 4: CREATE WITHDRAWAL TRANSACTION (NEW SCHEDULE OR EDIT WITH NO TRANSACTION YET)
     // ============================================
-    if (formData.show_withdraw_form && createdScheduleId && !scheduleId) {
+    if (formData.show_withdraw_form && createdScheduleId && !existingTxId) {
       try {
         const finalAmount =
           typeof formData.amount === "string"
@@ -343,6 +339,7 @@ export async function submitScheduleAction(
           districts_id: districtId,
           sub_districts_id: subDistrictId,
           transaction_type: 2,
+          member_id: formData.member_id || null,
         };
 
         console.log("💰 TRANSACTION PAYLOAD:", transactionData);

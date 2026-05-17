@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import {
   UseFormRegister,
-  FieldValues,
   UseFormHandleSubmit,
   FormState,
   UseFormWatch,
@@ -24,6 +23,10 @@ import type { FormData } from "@/pages/schedule";
 import type { Schedule } from "@/server/schedule.server";
 import { useActiveBankAccounts } from "@/hooks/useBankAccounts";
 import { useSession } from "next-auth/react";
+import {
+  MemberAutocomplete,
+  type MemberSearchResult,
+} from "@/components/schedule/MemberAutocomplete";
 
 interface UploadedImage {
   preview: string;
@@ -83,11 +86,9 @@ export function ScheduleFormModal({
   watch,
   setValue,
   errors,
-  formState,
   setFormState,
   districts,
   subDistricts,
-  provinces,
   schedule,
 }: ScheduleFormModalProps) {
   const { data: session } = useSession();
@@ -207,6 +208,53 @@ export function ScheduleFormModal({
         noValidate
         className="p-6 space-y-4"
       >
+        {/* Member Autocomplete */}
+        <MemberAutocomplete
+          value={watch("member_id") || ""}
+          disabled={
+            isEditing &&
+            (schedule?.transaction_status === "approved" ||
+              schedule?.transaction_status === "paid" ||
+              schedule?.status === "completed")
+          }
+          onChange={(member: MemberSearchResult | null) => {
+            setValue("member_id", member?.id || "");
+            if (member?.district_id) {
+              const districtIdStr = member.district_id.toString();
+              setFormState((prev) => ({ ...prev, district: districtIdStr }));
+              setValue("district_id", districtIdStr);
+              setValue("sub_district_id", "");
+              if (member.sub_district_id) {
+                setValue("sub_district_id", member.sub_district_id.toString());
+              }
+            }
+            // Auto-fill address from member data (create mode only)
+            if (!isEditing && member) {
+              const parts = [
+                member.house_no ? `บ้านเลขที่ ${member.house_no}` : null,
+                member.village_no ? `หมู่ ${member.village_no}` : null,
+                member.subdistrict || null,
+                member.district || null,
+              ].filter(Boolean);
+              if (parts.length > 0) {
+                setValue("address", parts.join(" "));
+              }
+            }
+          }}
+          initialMember={
+            schedule?.member_id
+              ? {
+                  id: schedule.member_id,
+                  first_name: schedule.member_first_name || "",
+                  last_name: schedule.member_last_name || "",
+                  level: schedule.member_level || "D",
+                  district: schedule.member_district || null,
+                  subdistrict: schedule.member_subdistrict || null,
+                }
+              : null
+          }
+        />
+
         {/* Date Field */}
         <Input
           label="วันที่ *"
@@ -349,6 +397,26 @@ export function ScheduleFormModal({
               </div>
 
               <div className="space-y-4 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                {/* Category */}
+                <Select
+                  label="หมวดหมู่ *"
+                  register={register("category", {
+                    validate: (value) => (!value ? "กรุณาเลือกหมวดหมู่" : true),
+                  })}
+                  error={errors.category}
+                  options={
+                    categories?.map((category) => ({
+                      value: category.id,
+                      label: category.name,
+                    })) || []
+                  }
+                  placeholder={
+                    categoriesLoading ? "กำลังโหลด..." : "-- เลือกหมวดหมู่ --"
+                  }
+                  disabled={categoriesLoading}
+                  required={true}
+                />
+
                 {/* Payment Method */}
                 <Select
                   label="ประเภท *"
@@ -404,6 +472,7 @@ export function ScheduleFormModal({
                   placeholder="0.00"
                   required={true}
                   prefix="฿"
+                  value={watch("amount")}
                 />
               </div>
             </>
@@ -584,6 +653,7 @@ export function ScheduleFormModal({
                   placeholder="0.00"
                   required={showWithdrawForm}
                   prefix="฿"
+                  value={watch("amount")}
                 />
               </div>
             )}

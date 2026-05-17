@@ -1,6 +1,7 @@
-import CurrencyInputLibrary from "react-currency-input-field";
+"use client";
+
+import { useState, useEffect } from "react";
 import { UseFormRegisterReturn, FieldError } from "react-hook-form";
-import { useRef } from "react";
 
 interface CurrencyInputProps {
   label: string;
@@ -13,6 +14,18 @@ interface CurrencyInputProps {
   value?: string | number;
 }
 
+/** Format a raw numeric string with comma thousands separators, preserving a trailing dot. */
+function formatDisplay(raw: string): string {
+  if (!raw) return "";
+  const dotIdx = raw.indexOf(".");
+  const intPart = dotIdx >= 0 ? raw.slice(0, dotIdx) : raw;
+  const decPart = dotIdx >= 0 ? raw.slice(dotIdx) : ""; // includes the "."
+  const formattedInt = intPart
+    ? intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+    : "";
+  return formattedInt + decPart;
+}
+
 export function CurrencyInput({
   label,
   register,
@@ -23,49 +36,72 @@ export function CurrencyInput({
   decimalsLimit = 2,
   value,
 }: CurrencyInputProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [display, setDisplay] = useState("");
 
-  const handleValueChange = (value: string | undefined) => {
-    // This is the actual numeric value from the library (without formatting/prefix)
-    const numericValue = value ? parseFloat(value) : 0;
-
-    if (inputRef.current) {
-      // Update the actual input value with numeric only
-      inputRef.current.value = numericValue.toString();
-
-      // Trigger onChange for React Hook Form
-      const event = new Event("change", { bubbles: true });
-      Object.defineProperty(event, "target", {
-        writable: false,
-        value: inputRef.current,
-      });
-      inputRef.current.dispatchEvent(event);
+  // Sync when an external value is set (edit pre-fill via reset())
+  useEffect(() => {
+    const raw = String(value ?? "").replace(/,/g, "");
+    if (!raw) {
+      setDisplay("");
+      return;
     }
+    const num = Number(raw);
+    if (!isNaN(num)) {
+      setDisplay(formatDisplay(raw));
+    }
+  }, [value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Strip everything except digits and a single decimal point
+    const stripped = e.target.value.replace(/[^0-9.]/g, "");
+    const parts = stripped.split(".");
+    const clean =
+      parts.length > 1
+        ? `${parts[0]}.${parts.slice(1).join("").slice(0, decimalsLimit)}`
+        : parts[0];
+
+    if (!clean || clean === ".") {
+      setDisplay("");
+      register.onChange({
+        target: { name: register.name, value: "" },
+      } as React.ChangeEvent<HTMLInputElement>);
+      return;
+    }
+
+    setDisplay(formatDisplay(clean));
+    // Pass the raw numeric string to RHF — no prefix, no commas
+    register.onChange({
+      target: { name: register.name, value: clean },
+    } as React.ChangeEvent<HTMLInputElement>);
   };
 
   return (
     <div>
       <label className="block text-sm font-medium text-slate-700 mb-2">
         {label}
-        {required && <span className="text-red-500">*</span>}
+        {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
 
-      <CurrencyInputLibrary
-        ref={inputRef}
-        onValueChange={handleValueChange}
-        prefix={prefix}
-        placeholder={placeholder}
-        decimalsLimit={decimalsLimit}
-        decimalSeparator="."
-        groupSeparator=","
-        value={value}
-        {...register}
-        className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-colors text-slate-800 pl-4 ${
-          error
-            ? "border-red-300 focus:ring-red-500"
-            : "border-slate-200 focus:ring-emerald-500"
-        }`}
-      />
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium pointer-events-none select-none">
+          {prefix}
+        </span>
+        <input
+          type="text"
+          inputMode="decimal"
+          value={display}
+          name={register.name}
+          ref={register.ref}
+          onBlur={register.onBlur}
+          onChange={handleChange}
+          placeholder={placeholder}
+          className={`w-full pl-8 py-2.5 pr-4 rounded-lg border-2 focus:outline-none text-slate-800 ${
+            error
+              ? "border-red-300 focus:border-red-500"
+              : "border-slate-200 focus:border-emerald-500"
+          }`}
+        />
+      </div>
 
       {error && <p className="text-red-500 text-sm mt-1">{error.message}</p>}
     </div>

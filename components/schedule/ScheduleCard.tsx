@@ -198,6 +198,19 @@ export function ScheduleCard({
               </div>
             )}
 
+            {/* Member (ผู้แทน/ผู้รับมอบ) */}
+            {schedule.member_id && (schedule.member_first_name || schedule.member_last_name) && (
+              <div className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-2 py-1">
+                <i className="fa-solid fa-user-check shrink-0"></i>
+                <span className="font-medium truncate">
+                  {schedule.member_first_name} {schedule.member_last_name}
+                </span>
+                {schedule.member_subdistrict && (
+                  <span className="text-emerald-600 truncate">· {schedule.member_subdistrict}</span>
+                )}
+              </div>
+            )}
+
             {/* Note */}
             {schedule.note && (
               <p className="text-xs text-slate-500 line-clamp-2 italic">
@@ -381,6 +394,24 @@ export function ScheduleCard({
                   {schedule.sub_district_name}
                 </span>
               )}
+            </div>
+          )}
+
+          {/* Member (ผู้แทน/ผู้รับมอบ) */}
+          {schedule.member_id && (schedule.member_first_name || schedule.member_last_name) && (
+            <div className="flex items-center gap-2 text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+              <i className="fa-solid fa-user-check text-emerald-600 shrink-0"></i>
+              <div className="min-w-0">
+                <span className="font-medium">ผู้แทน / ผู้รับมอบ: </span>
+                <span>
+                  {schedule.member_first_name} {schedule.member_last_name}
+                </span>
+                {schedule.member_subdistrict && (
+                  <span className="text-emerald-600 ml-1">
+                    · {schedule.member_subdistrict}
+                  </span>
+                )}
+              </div>
             </div>
           )}
 

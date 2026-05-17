@@ -1,7 +1,16 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Determine if using dev mode (local Supabase) or production
+const isDevMode = process.env.NEXT_PUBLIC_SUPABASE_DEV_MODE === "true";
+
+// Select URL and key based on dev mode
+const supabaseUrl = isDevMode
+  ? process.env.NEXT_PUBLIC_SUPABASE_LOCAL_URL
+  : process.env.NEXT_PUBLIC_SUPABASE_PROD_URL;
+
+const supabaseKey = isDevMode
+  ? process.env.NEXT_PUBLIC_SUPABASE_LOCAL_ANON_KEY
+  : process.env.NEXT_PUBLIC_SUPABASE_PROD_ANON_KEY;
 
 // Create supabase client - will be lazily initialized when first accessed at runtime
 // Using process.env directly instead of throwing at module load allows Vercel builds to succeed
@@ -29,15 +38,19 @@ export const supabase = (
 
 // Server-side client with service role key
 export const getSupabaseAdmin = () => {
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serviceRoleKey = isDevMode
+    ? process.env.SUPABASE_LOCAL_SERVICE_ROLE_KEY
+    : process.env.SUPABASE_PROD_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl) {
-    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL");
+    throw new Error(
+      "Missing Supabase URL - check NEXT_PUBLIC_SUPABASE_LOCAL_URL or NEXT_PUBLIC_SUPABASE_PROD_URL",
+    );
   }
 
   if (!serviceRoleKey) {
     throw new Error(
-      "Missing SUPABASE_SERVICE_ROLE_KEY - required for admin operations",
+      `Missing ${isDevMode ? "SUPABASE_LOCAL_SERVICE_ROLE_KEY" : "SUPABASE_PROD_SERVICE_ROLE_KEY"} - required for admin operations`,
     );
   }
 

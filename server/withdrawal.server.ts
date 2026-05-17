@@ -211,6 +211,7 @@ export function prepareTransactionDataForSupabase(
     updated_at: new Date().toISOString(),
     districts_id: districtId,
     sub_districts_id: subDistrictId,
+    member_id: formData.member_id || null,
   };
 }
 

@@ -28,6 +28,8 @@ export interface Transaction {
   categoryName?: string; // Category name
   districtName?: string; // District name
   thumbnail?: string | null; // First image URL if exists
+  memberName?: string; // ผู้แทน / ผู้รับมอบ
+  memberLevel?: string; // กลุ่ม/ระดับ
 }
 
 interface TransactionCardProps {
@@ -277,6 +279,28 @@ function _TransactionCard({ transaction: tx }: TransactionCardProps) {
             </p>
           </div>
         </div>
+
+        {/* Member row — only shown when a member is recorded */}
+        {tx.memberName && (
+          <div className="mb-4 pb-4 border-b border-slate-100 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <i className="fa-solid fa-user-check text-emerald-500 text-xs shrink-0"></i>
+              <div className="min-w-0">
+                <p className="text-xs text-slate-500 font-medium mb-0.5">
+                  ผู้แทน / ผู้รับมอบ
+                </p>
+                <p className="text-xs text-slate-800 font-medium truncate">
+                  {tx.memberName}
+                </p>
+              </div>
+            </div>
+            {tx.memberLevel && (
+              <span className="text-md font-mono px-1.5 py-0.5 bg-emerald-200 text-emerald-800 rounded shrink-0">
+                {tx.memberLevel}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Amount and Date Row */}
         <div className="grid grid-cols-2 gap-4 mb-4">

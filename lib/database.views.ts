@@ -100,6 +100,13 @@ export interface TransactionDetailWithCategory extends TransactionDetail {
   category_description: string | null;
   category_color: string | null;
   category_icon: string | null;
+  // Member / ผู้แทน / ผู้รับมอบ
+  member_id: string | null;
+  member_first_name: string | null;
+  member_last_name: string | null;
+  member_level: string | null;
+  member_district: string | null;
+  member_subdistrict: string | null;
 }
 
 /**

@@ -20,6 +20,10 @@ import {
   useDistrictsByProvince,
   useSubDistrictsByDistrict,
 } from "@/hooks/useDistricts";
+import {
+  MemberAutocomplete,
+  type MemberSearchResult,
+} from "@/components/schedule/MemberAutocomplete";
 
 interface WithdrawModalProps {
   isOpen: boolean;
@@ -62,6 +66,7 @@ export function WithdrawModal({
       sub_district_id: "",
       amount: "",
       description: "",
+      member_id: "",
     },
   });
 
@@ -180,6 +185,21 @@ export function WithdrawModal({
         {/* Error Message */}
         <FormErrorMessage error={error} />
 
+        {/* Member Autocomplete */}
+        <MemberAutocomplete
+          value={watch("member_id") || ""}
+          onChange={(member: MemberSearchResult | null) => {
+            setValue("member_id", member?.id || "");
+            if (member?.district_id) {
+              setValue("district_id", member.district_id.toString());
+              setValue("sub_district_id", "");
+            }
+            if (member?.sub_district_id) {
+              setValue("sub_district_id", member.sub_district_id.toString());
+            }
+          }}
+        />
+
         {/* Item Name */}
         <Input
           label="ชื่อรายการ"
@@ -257,7 +277,7 @@ export function WithdrawModal({
 
           <Select
             label="ตำบล"
-            register={register("sub_district_id")}
+            value={watch("sub_district_id") || ""}
             error={errors.sub_district_id}
             options={
               subDistricts?.map((subDistrict) => ({

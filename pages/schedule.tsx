@@ -41,6 +41,7 @@ export interface FormData {
   bankAccountId?: string;
   amount?: string;
   images?: File[];
+  member_id?: string;
 }
 
 export interface FormState {
@@ -91,6 +92,7 @@ export default function SchedulePage() {
       payment_method: "",
       bankAccountId: "",
       amount: "",
+      member_id: "",
     },
   });
 
@@ -178,6 +180,7 @@ export default function SchedulePage() {
         sub_district_id: schedule.sub_district_id?.toString(),
         note: schedule.note,
         status: schedule.status,
+        member_id: schedule.member_id || "",
       };
 
       // If editing a pending transaction, pre-fill transaction fields
@@ -186,6 +189,7 @@ export default function SchedulePage() {
         schedule.transaction_status === "pending"
       ) {
         formData.show_withdraw_form = true;
+        formData.category = schedule.transaction_category_id || "";
         formData.payment_method = schedule.transaction_payment_method || "";
         // Pass raw numeric value for amount (not formatted)
         if (schedule.transaction_amount) {
